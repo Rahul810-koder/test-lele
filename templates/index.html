@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ExamGen</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body data-theme="dark">
+  <div class="bg"></div>
+
+  <main class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">EG</div>
+        <div>
+          <div class="title">ExamGen</div>
+          <div class="sub">Generate exam papers + evaluation</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2 class="h2">Create a Test Paper</h2>
+      <div class="intro">
+  <p><b>What this does:</b> Paste a topic/notes or upload a PDF/image → we generate an exam-style paper (MCQ/Written) with answers, explanations, and scoring.</p>
+  <div class="how">
+    <div class="how-item"><b>1.</b> Choose difficulty + type</div>
+    <div class="how-item"><b>2.</b> Generate → new test page opens</div>
+    <div class="how-item"><b>3.</b> Solve + submit → get feedback</div>
+  </div>
+</div>
+
+
+      <form id="genForm" class="grid">
+        <div class="field col-12">
+          <label>Topic / Notes (paste text)</label>
+          <textarea id="topic_text" rows="6" placeholder="Paste chapter notes or topic here…"></textarea>
+        </div>
+
+        <div class="field col-12">
+          <label>Upload PDF / Image (optional)</label>
+          <input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" />
+          <div class="hint">If you upload a file, questions will be generated only from extracted content.</div>
+        </div>
+
+        <div class="field col-6">
+          <label>Difficulty</label>
+          <select id="difficulty">
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+            <option>Mixed</option>
+          </select>
+        </div>
+
+        <div class="field col-6">
+          <label>Question Type</label>
+          <select id="qtype">
+            <option>MCQ</option>
+            <option>Written</option>
+            <option>Both</option>
+          </select>
+        </div>
+
+        <!-- ✅ FIXED: Number of Questions first -->
+        <div class="field col-6">
+          <label>Number of Questions</label>
+          <input id="n_questions" type="number" min="1" max="60" value="15" />
+        </div>
+
+        <!-- ✅ FIXED: Timer has its own input -->
+        <div class="field col-6">
+          <label>Timer (minutes)</label>
+          <input id="timer_minutes" type="number" min="0" max="300" value="3" />
+          <div class="hint">Set 0 to disable timer.</div>
+        </div>
+
+        <div class="field col-6">
+          <label>Answers & Explanations</label>
+          <select id="need_explanations">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        <div class="field col-6">
+          <label>Exam Mode</label>
+          <div class="radioBox">
+            <label class="radio">
+              <input type="radio" name="mode" value="practice" checked />
+              <div>
+                <b>Practice Mode</b>
+                <div class="hint">Answers/explanations can be revealed while solving</div>
+              </div>
+            </label>
+            <label class="radio">
+              <input type="radio" name="mode" value="exam" />
+              <div>
+                <b>Exam Mode</b>
+                <div class="hint">Answers/explanations hidden until submission</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="col-12 actions">
+          <button class="btn" id="generateBtn" type="submit">Generate Test Paper</button>
+          <div id="status" class="status"></div>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

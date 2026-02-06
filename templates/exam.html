@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Exam</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body data-theme="dark">
+  <div class="bg"></div>
+
+  <main class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">EG</div>
+        <div>
+          <div class="title">Test Paper</div>
+          <div class="sub" id="subline">Loading…</div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <div class="pill" id="timerPill" style="display:none;">⏳ 00:00</div>
+        <div class="pill" id="progressPill">Q 0/0 • 0 answered</div>
+        <button class="btn ghost" id="themeBtn" type="button">Theme</button>
+        <button class="btn ghost" id="printBtn" type="button">Print</button>
+      </div>
+    </header>
+
+    <section class="card" id="paperCard">
+      <div id="paper"></div>
+
+      <div class="actionsRow">
+        <button class="btn" id="submitBtn" type="button">Submit Exam</button>
+        <div class="status" id="submitStatus"></div>
+      </div>
+
+      <div id="result" class="result"></div>
+    </section>
+    <div class="modal" id="timeOverModal" style="display:none;">
+  <div class="modal-card">
+    <h3>Time’s up ⏳</h3>
+    <p>Your answers are locked and the exam is submitted automatically.</p>
+    <button class="btn" id="timeOverOk" type="button">OK</button>
+  </div>
+</div>
+
+  </main>
+
+  <script>
+    const examId = "{{ exam_id }}";
+  </script>
+  <script src="/static/exam.js"></script>
+</body>
+</html>
