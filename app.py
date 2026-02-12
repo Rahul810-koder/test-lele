@@ -2,569 +2,467 @@ from __future__ import annotations
 
 import os
 import re
-import json
 import uuid
+import json
+import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Dict, Any, Optional, Literal
 
-from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-# Optional deps
-PDF_OK = True
-OCR_OK = True
-FUZZ_OK = True
-
+# Optional PDF extraction
 try:
-    import pdfplumber  # type: ignore
+    from pypdf import PdfReader  # type: ignore
 except Exception:
-    PDF_OK = False
-
-try:
-    from PIL import Image  # type: ignore
-    import pytesseract  # type: ignore
-except Exception:
-    OCR_OK = False
-
-try:
-    from rapidfuzz import fuzz  # type: ignore
-except Exception:
-    FUZZ_OK = False
+    PdfReader = None
 
 
-app = FastAPI(title="ExamGen (MVP+)", version="1.0.0")
+APP_NAME = "ExamGen"
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
-
-
-# ----------------------------
-# In-memory storage (swap later with DB)
-# ----------------------------
-@dataclass
-class ExamSession:
-    exam_id: str
-    mode: str  # "practice" | "exam"
-    meta: Dict[str, Any]
-    paper: Dict[str, Any]
+app = FastAPI(title=APP_NAME)
+templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-EXAMS: Dict[str, ExamSession] = {}
+# ---------------------------
+# In-memory storage (MVP)
+# ---------------------------
+EXAMS: Dict[str, Dict[str, Any]] = {}  # exam_id -> exam data
 
 
-# ----------------------------
-# Pages
-# ----------------------------
+# ---------------------------
+# Helpers
+# ---------------------------
+def clean_text(s: str) -> str:
+    s = (s or "").strip()
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def safe_int(val: str, default: int, min_v: int, max_v: int) -> int:
+    try:
+        n = int(val)
+    except Exception:
+        return default
+    return max(min_v, min(max_v, n))
+
+
+def extract_pdf_text(file_path: str) -> str:
+    if PdfReader is None:
+        return ""
+    try:
+        reader = PdfReader(file_path)
+        parts = []
+        for p in reader.pages[:25]:  # limit for safety
+            t = p.extract_text() or ""
+            parts.append(t)
+        return clean_text("\n".join(parts))
+    except Exception:
+        return ""
+
+
+def naive_keywords(text: str, limit: int = 10) -> List[str]:
+    text = text.lower()
+    words = re.findall(r"[a-zA-Z]{4,}", text)
+    freq: Dict[str, int] = {}
+    for w in words:
+        freq[w] = freq.get(w, 0) + 1
+    ranked = sorted(freq.items(), key=lambda x: (-x[1], x[0]))
+    return [w for w, _ in ranked[:limit]]
+
+
+def grade_from_percent(p: float) -> str:
+    if p <= 49:
+        return "Needs Improvement"
+    if p <= 69:
+        return "Not Bad"
+    if p <= 89:
+        return "Good"
+    if p <= 98:
+        return "Very Good"
+    return "Excellent"
+
+
+def make_mcq(question: str, correct: str, distractors: List[str], explanation: str) -> Dict[str, Any]:
+    opts = [correct] + distractors[:3]
+    # simple shuffle but stable (seed by question)
+    seed = sum(ord(c) for c in question) % 999
+    for i in range(len(opts)):
+        j = (seed + i * 7) % len(opts)
+        opts[i], opts[j] = opts[j], opts[i]
+    letters = ["A", "B", "C", "D"]
+    options = [{"key": letters[i], "text": opts[i]} for i in range(4)]
+    answer_key = next(o["key"] for o in options if o["text"] == correct)
+    return {
+        "type": "mcq",
+        "q": question,
+        "options": options,
+        "answer": answer_key,
+        "explain": explanation
+    }
+
+
+def make_written(question: str, model: str, key_points: List[str], marks: int = 3) -> Dict[str, Any]:
+    return {
+        "type": "written",
+        "q": question,
+        "model": model,
+        "key_points": key_points,
+        "marks": marks
+    }
+
+
+def generate_exam(
+    topic_or_notes: str,
+    difficulty: Literal["easy", "medium", "hard", "mixed"],
+    qtype: Literal["mcq", "written", "both"],
+    num_questions: int,
+    include_answers: bool,
+) -> Dict[str, Any]:
+    """
+    NOTE: This is a smart-template generator (no external AI API).
+    Later you can plug LLM easily.
+    """
+    base = clean_text(topic_or_notes)
+    if not base:
+        base = "General Knowledge"
+
+    # derive simple keywords
+    keys = naive_keywords(base, limit=12)
+    if not keys:
+        keys = ["concept", "definition", "example", "application", "process", "output"]
+
+    # difficulty distribution
+    if difficulty == "easy":
+        diffs = ["easy"] * num_questions
+    elif difficulty == "medium":
+        diffs = ["medium"] * num_questions
+    elif difficulty == "hard":
+        diffs = ["hard"] * num_questions
+    else:
+        # mixed: 40% easy, 40% medium, 20% hard
+        diffs = []
+        for i in range(num_questions):
+            r = i / max(1, num_questions - 1)
+            if r < 0.4:
+                diffs.append("easy")
+            elif r < 0.8:
+                diffs.append("medium")
+            else:
+                diffs.append("hard")
+
+    # question type distribution
+    types: List[str] = []
+    if qtype == "mcq":
+        types = ["mcq"] * num_questions
+    elif qtype == "written":
+        types = ["written"] * num_questions
+    else:
+        # both: alternate, slightly more mcq for large sets
+        for i in range(num_questions):
+            types.append("mcq" if i % 2 == 0 else "written")
+
+    questions: List[Dict[str, Any]] = []
+    for i in range(num_questions):
+        k = keys[i % len(keys)]
+        d = diffs[i]
+        t = types[i]
+
+        if t == "mcq":
+            q = f"[{d.upper()}] {k}: Choose the best answer."
+            correct = f"Correct idea about {k}"
+            distractors = [
+                f"Partially correct idea about {k}",
+                f"Incorrect idea about {k}",
+                f"Not enough information about {k}"
+            ]
+            exp = f"{k} ka correct option woh hota hai jo definition + context ke saath match kare."
+            questions.append(make_mcq(q, correct, distractors, exp))
+        else:
+            if d == "easy":
+                q = f"[EASY] Explain {k} with one example."
+                model = f"{k} ka matlab: clear definition. Example: real use-case. (Short, direct.)"
+                kp = [f"{k} ki definition", "1 example", "Correct terms"]
+                m = 3
+            elif d == "medium":
+                q = f"[MEDIUM] Describe how {k} works and write 2 key points."
+                model = f"{k} ka working: step-by-step. 2 key points: benefits/limits."
+                kp = ["Steps/flow", "2 key points", "Clarity"]
+                m = 5
+            else:
+                q = f"[HARD] Apply {k} to a scenario and justify your answer."
+                model = "Scenario → reasoning → conclusion. Mention assumptions + limitations."
+                kp = ["Scenario handling", "Reasoning", "Justification", "Terminology"]
+                m = 8
+
+            questions.append(make_written(q, model, kp, marks=m))
+
+    return {
+        "title": f"Test Paper: {clean_text(base)[:40]}",
+        "meta": {
+            "difficulty": difficulty,
+            "qtype": qtype,
+            "include_answers": include_answers,
+        },
+        "questions": questions
+    }
+
+
+def score_written(user_text: str, key_points: List[str]) -> float:
+    """
+    Lightweight scorer:
+    - keyword overlap with key_points words
+    - length sanity
+    """
+    u = clean_text(user_text).lower()
+    if not u:
+        return 0.0
+
+    # build target tokens from key_points
+    target = set()
+    for kp in key_points:
+        for w in re.findall(r"[a-zA-Z]{3,}", kp.lower()):
+            target.add(w)
+
+    if not target:
+        return 50.0
+
+    tokens = set(re.findall(r"[a-zA-Z]{3,}", u))
+    hit = len(target.intersection(tokens))
+    ratio = hit / max(1, len(target))
+
+    # length bonus/penalty
+    length = len(u)
+    if length < 20:
+        ratio *= 0.7
+    elif length > 500:
+        ratio *= 0.95
+
+    return max(0.0, min(100.0, ratio * 100.0))
+
+
+# ---------------------------
+# Routes (UI)
+# ---------------------------
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, "app_name": APP_NAME})
+
+
+@app.post("/create")
+async def create_test(
+    request: Request,
+    topic: str = Form(""),
+    difficulty: str = Form("easy"),
+    question_type: str = Form("mcq"),
+    num_questions: str = Form("10"),
+    timer_minutes: str = Form("0"),
+    include_answers: str = Form("yes"),
+    exam_mode: str = Form("practice"),
+    file: Optional[UploadFile] = File(None),
+):
+    topic = clean_text(topic)
+    num_q = safe_int(num_questions, default=10, min_v=3, max_v=50)
+    timer_m = safe_int(timer_minutes, default=0, min_v=0, max_v=180)
+
+    include_ans_bool = (include_answers.lower() == "yes")
+    difficulty = difficulty.lower()
+    question_type = question_type.lower()
+    exam_mode = exam_mode.lower()
+
+    # file handling
+    extracted = ""
+    filename = ""
+    if file and file.filename:
+        filename = f"{uuid.uuid4().hex}_{file.filename}"
+        fpath = os.path.join(UPLOAD_DIR, filename)
+        content = await file.read()
+        with open(fpath, "wb") as f:
+            f.write(content)
+
+        # extract PDF text if possible
+        if file.filename.lower().endswith(".pdf"):
+            extracted = extract_pdf_text(fpath)
+        else:
+            # image OCR not included in this version
+            extracted = ""
+
+    source_text = extracted if extracted else topic
+    exam_doc = generate_exam(
+        topic_or_notes=source_text,
+        difficulty=difficulty if difficulty in ("easy", "medium", "hard", "mixed") else "easy",
+        qtype=question_type if question_type in ("mcq", "written", "both") else "mcq",
+        num_questions=num_q,
+        include_answers=include_ans_bool,
+    )
+
+    exam_id = str(uuid.uuid4())
+    EXAMS[exam_id] = {
+        "id": exam_id,
+        "created_at": int(time.time()),
+        "title": exam_doc["title"],
+        "meta": {
+            **exam_doc["meta"],
+            "timer_minutes": timer_m,
+            "mode": exam_mode,  # practice/exam
+            "uploaded_file": filename,
+            "has_extracted": bool(extracted),
+        },
+        "questions": exam_doc["questions"],
+        "submitted": False,
+        "result": None,
+    }
+
+    # Redirect to new page
+    return RedirectResponse(url=f"/exam/{exam_id}", status_code=303)
 
 
 @app.get("/exam/{exam_id}", response_class=HTMLResponse)
 def exam_page(request: Request, exam_id: str):
     if exam_id not in EXAMS:
-        raise HTTPException(status_code=404, detail="Exam not found")
-    return templates.TemplateResponse("exam.html", {"request": request, "exam_id": exam_id})
+        return HTMLResponse("Exam not found", status_code=404)
+    return templates.TemplateResponse("exam.html", {"request": request, "app_name": APP_NAME})
 
 
-# ----------------------------
-# Helpers: extraction
-# ----------------------------
-async def extract_text_from_pdf(file: UploadFile) -> str:
-    if not PDF_OK:
-        raise HTTPException(status_code=400, detail="PDF extraction not available. Install pdfplumber.")
-
-    contents = await file.read()
-    import io
-
-    text_parts: List[str] = []
-    with pdfplumber.open(io.BytesIO(contents)) as pdf:
-        for page in pdf.pages:
-            t = page.extract_text() or ""
-            if t.strip():
-                text_parts.append(t)
-
-    extracted = "\n".join(text_parts).strip()
-    if not extracted:
-        raise HTTPException(status_code=400, detail="Could not extract text from PDF (maybe scanned).")
-    return extracted
-
-
-async def extract_text_from_image(file: UploadFile) -> str:
-    if not OCR_OK:
-        raise HTTPException(
-            status_code=400,
-            detail="Image OCR not available. Install pillow + pytesseract and Tesseract OCR in OS.",
-        )
-
-    contents = await file.read()
-    import io
-
-    img = Image.open(io.BytesIO(contents))
-    text = (pytesseract.image_to_string(img) or "").strip()
-    if not text:
-        raise HTTPException(status_code=400, detail="Could not OCR text from image (try clearer image).")
-    return text
-
-
-def normalize(s: str) -> str:
-    s = (s or "").lower().strip()
-    s = re.sub(r"\s+", " ", s)
-    return s
-
-
-# ----------------------------
-# Generator (OpenAI optional + local fallback)
-# ----------------------------
-def openai_generate_exam(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """
-    If OPENAI_API_KEY is set and OpenAI SDK exists, generate with model.
-    Else return None (fallback).
-    """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
-
-    try:
-        from openai import OpenAI  # type: ignore
-    except Exception:
-        return None
-
-    client = OpenAI(api_key=api_key)
-
-    topic_text = payload["topic_text"]
-    difficulty = payload["difficulty"]
-    qtype = payload["qtype"]
-    n_questions = payload["n_questions"]
-    need_explanations = payload["need_explanations"]
-
-    system = (
-        "You are an AI Exam Generator, Evaluator, and Personal Tutor. "
-        "Return ONLY valid JSON. No markdown, no extra text."
-    )
-
-    schema = {
-        "title": "string",
-        "instructions": ["string"],
-        "sections": [
-            {
-                "name": "string",
-                "questions": [
-                    {
-                        "id": "string",
-                        "type": "mcq|written",
-                        "difficulty": "easy|medium|hard",
-                        "prompt": "string",
-                        "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-                        "answer": "A|B|C|D OR model answer text",
-                        "explanation": "string",
-                        "key_points": ["string"],
-                        "marks": 1,
-                    }
-                ],
-            }
-        ],
-    }
-
-    user = f"""
-Generate an exam ONLY from this content/topic:
-
-{topic_text}
-
-Settings:
-- difficulty: {difficulty}
-- question_type: {qtype}
-- number_of_questions: {n_questions}
-- include_explanations: {need_explanations}
-
-Rules:
-- Balanced difficulty distribution.
-- Include concept + application + reasoning.
-- Real exam formatting.
-- MCQ: 4 options A-D; answer must be only the letter A/B/C/D.
-- Written: answer must be ideal model answer + key_points + marks.
-
-Return JSON exactly matching this schema:
-{json.dumps(schema, ensure_ascii=False)}
-""".strip()
-
-    try:
-        resp = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            temperature=0.6,
-        )
-        content = (resp.choices[0].message.content or "").strip()
-        return json.loads(content)
-    except Exception:
-        return None
-
-
-def local_fallback_exam(payload: Dict[str, Any]) -> Dict[str, Any]:
-    topic = payload["topic_text"].strip()
-    difficulty = payload["difficulty"]
-    qtype = payload["qtype"]
-    n = int(payload["n_questions"])
-    need_explanations = bool(payload["need_explanations"])
-
-    def diff_mix(i: int) -> str:
-        if difficulty == "Easy":
-            return "easy"
-        if difficulty == "Medium":
-            return "medium"
-        if difficulty == "Hard":
-            return "hard"
-        return ["easy", "medium", "hard"][i % 3]  # Mixed
-
-    def make_mcq(i: int) -> Dict[str, Any]:
-        d = diff_mix(i)
-        marks = 1 if d == "easy" else (2 if d == "medium" else 3)
-        return {
-            "id": f"Q{i+1}",
-            "type": "mcq",
-            "difficulty": d,
-            "prompt": f"[{d.upper()}] {topic}: Choose the best answer (Q{i+1}).",
-            "options": [
-                "A. Statement that is most directly correct",
-                "B. Statement that is partially correct",
-                "C. Statement that is incorrect",
-                "D. Not enough information from context",
-            ],
-            "answer": "A",
-            "explanation": "A is the most directly correct option based on the topic context." if need_explanations else "",
-            "key_points": [f"Core concept of {topic}", "Common traps", "Basic application"],
-            "marks": marks,
-        }
-
-    def make_written(i: int) -> Dict[str, Any]:
-        d = diff_mix(i)
-        marks = 3 if d == "easy" else (5 if d == "medium" else 8)
-        model = (
-            f"Define {topic}, explain key mechanism/steps, give one real example, "
-            f"and conclude with importance/limitations."
-        )
-        return {
-            "id": f"Q{i+1}",
-            "type": "written",
-            "difficulty": d,
-            "prompt": f"[{d.upper()}] Explain {topic} with an example (Q{i+1}).",
-            "options": [],
-            "answer": model,
-            "explanation": "Use definition → explanation → example → conclusion." if need_explanations else "",
-            "key_points": [
-                f"Correct definition of {topic}",
-                "Clear explanation",
-                "Relevant example",
-                "Correct terminology",
-            ],
-            "marks": marks,
-        }
-
-    if qtype == "MCQ":
-        questions = [make_mcq(i) for i in range(n)]
-    elif qtype == "Written":
-        questions = [make_written(i) for i in range(n)]
-    else:
-        # Both -> half MCQ + half Written
-        half = max(1, n // 2)
-
-        mcqs = [make_mcq(i) for i in range(half)]
-
-        written: List[Dict[str, Any]] = []
-        for j in range(n - half):
-            q = make_written(j)
-            # IMPORTANT: continue ids after MCQ ids so NO DUPLICATE IDs
-            q["id"] = f"Q{half + j + 1}"
-            written.append(q)
-
-        questions = mcqs + written
-
-    paper = {
-        "title": f"Test Paper: {topic[:60]}",
-        "instructions": [
-            "Answer all questions.",
-            "Use clear reasoning and correct terminology.",
-            "For written answers: definition → explanation → example.",
-        ],
-        "sections": [{"name": "Section A", "questions": questions}],
-    }
-    return paper
-
-
-def ensure_unique_ids(paper: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Safety net: even if generator returns duplicate IDs, fix them.
-    """
-    seen = set()
-    counter = 1
-
-    for sec in paper.get("sections", []):
-        for q in sec.get("questions", []):
-            qid = str(q.get("id", "")).strip()
-            if (not qid) or (qid in seen):
-                qid = f"Q{counter}"
-            while qid in seen:
-                counter += 1
-                qid = f"Q{counter}"
-            q["id"] = qid
-            seen.add(qid)
-            counter += 1
-
-    return paper
-
-
-def generate_exam(payload: Dict[str, Any]) -> Dict[str, Any]:
-    paper = openai_generate_exam(payload)
-    if paper:
-        return ensure_unique_ids(paper)
-    return ensure_unique_ids(local_fallback_exam(payload))
-
-
-# ----------------------------
-# Evaluation & grading
-# ----------------------------
-def grade_bucket(pct: float) -> str:
-    if pct <= 49:
-        return "Needs Improvement"
-    if pct <= 69:
-        return "Not Bad"
-    if pct <= 89:
-        return "Good"
-    if pct <= 98:
-        return "Very Good"
-    return "Excellent"
-
-
-def score_written(student: str, key_points: List[str], marks: int) -> Tuple[float, List[str]]:
-    st = normalize(student)
-    if not st:
-        return 0.0, key_points
-
-    covered = 0
-    missing: List[str] = []
-
-    for kp in key_points:
-        kp_norm = normalize(kp)
-        if kp_norm and kp_norm in st:
-            covered += 1
-        else:
-            if FUZZ_OK and kp_norm:
-                if fuzz.partial_ratio(kp_norm, st) >= 78:
-                    covered += 1
-                else:
-                    missing.append(kp)
-            else:
-                missing.append(kp)
-
-    coverage_ratio = covered / max(1, len(key_points))
-
-    # simple clarity bonus
-    bonus = 0.0
-    words = len(st.split())
-    if words >= 35:
-        bonus += 0.10
-    if any(x in st for x in ["because", "therefore", "for example", "example"]):
-        bonus += 0.05
-
-    raw = min(1.0, coverage_ratio + bonus)
-    return round(raw * marks, 2), missing
-
-
-def evaluate_submission(paper: Dict[str, Any], student_answers: Dict[str, Any]) -> Dict[str, Any]:
-    all_qs: List[Dict[str, Any]] = []
-    for sec in paper.get("sections", []):
-        all_qs.extend(sec.get("questions", []))
-
-    total_marks = 0
-    scored_marks = 0.0
-    per_question: List[Dict[str, Any]] = []
-
-    for q in all_qs:
-        qid = q["id"]
-        q_marks = int(q.get("marks", 1))
-        total_marks += q_marks
-
-        st_ans = student_answers.get(qid, "")
-        qtype = q.get("type")
-
-        if qtype == "mcq":
-            correct = normalize(str(q.get("answer", "")))
-            chosen = normalize(str(st_ans))
-            got = float(q_marks) if chosen == correct else 0.0
-            scored_marks += got
-            per_question.append(
-                {
-                    "id": qid,
-                    "type": "mcq",
-                    "marks": q_marks,
-                    "score": got,
-                    "correct_answer": q.get("answer", ""),
-                    "your_answer": st_ans,
-                    "explanation": q.get("explanation", ""),
-                    "status": "correct" if got == q_marks else "wrong",
-                }
-            )
-        else:
-            key_points = q.get("key_points", []) or []
-            got, missing = score_written(str(st_ans), key_points, q_marks)
-            scored_marks += got
-            per_question.append(
-                {
-                    "id": qid,
-                    "type": "written",
-                    "marks": q_marks,
-                    "score": got,
-                    "model_answer": q.get("answer", ""),
-                    "your_answer": st_ans,
-                    "missing_points": missing,
-                    "explanation": q.get("explanation", ""),
-                }
-            )
-
-    pct = 0.0 if total_marks == 0 else round((scored_marks / total_marks) * 100, 2)
-
-    improve: List[str] = []
-    if pct < 70:
-        improve.append("Revise core definitions and key terms.")
-        improve.append("Practice more application-based questions.")
-    if pct < 50:
-        improve.append("Write structured answers: definition → explanation → example.")
-    if pct >= 90:
-        improve.append("Maintain consistency; add timed practice for exam readiness.")
-
-    missing_accum: List[str] = []
-    for pq in per_question:
-        if pq["type"] == "written":
-            missing_accum.extend(pq.get("missing_points", []))
-
-    seen = set()
-    weak_topics: List[str] = []
-    for m in missing_accum:
-        t = (m or "").strip()
-        if t and t.lower() not in seen:
-            weak_topics.append(t)
-            seen.add(t.lower())
-
-    return {
-        "total_marks": total_marks,
-        "scored_marks": round(scored_marks, 2),
-        "percentage": pct,
-        "grade": grade_bucket(pct),
-        "feedback": {
-            "summary": "Focus on missing concepts and improve answer structure.",
-            "how_to_improve": improve,
-            "suggested_revision_topics": weak_topics[:10],
-        },
-        "per_question": per_question,
-    }
-
-
-# ----------------------------
-# API
-# ----------------------------
-@app.post("/api/generate")
-async def api_generate(
-    topic_text: str = Form(""),
-    difficulty: str = Form(...),     # Easy/Medium/Hard/Mixed
-    qtype: str = Form(...),          # MCQ/Written/Both
-    n_questions: int = Form(...),
-    need_explanations: str = Form("yes"),
-    mode: str = Form("practice"),    # practice/exam
-    timer_minutes: int = Form(0),    # NEW: timer
-    file: Optional[UploadFile] = File(None),
-):
-    extracted_summary = ""
-    final_text = (topic_text or "").strip()
-
-    if file is not None:
-        filename = (file.filename or "").lower()
-        if filename.endswith(".pdf"):
-            extracted = await extract_text_from_pdf(file)
-            extracted_summary = extracted[:800].strip()
-            final_text = extracted
-        elif filename.endswith((".png", ".jpg", ".jpeg", ".webp")):
-            extracted = await extract_text_from_image(file)
-            extracted_summary = extracted[:800].strip()
-            final_text = extracted
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported file type. Upload PDF or image.")
-
-    if not final_text:
-        raise HTTPException(status_code=400, detail="Please provide topic text/notes or upload a PDF/image.")
-
-    if difficulty not in ["Easy", "Medium", "Hard", "Mixed"]:
-        raise HTTPException(status_code=400, detail="Invalid difficulty.")
-    if qtype not in ["MCQ", "Written", "Both"]:
-        raise HTTPException(status_code=400, detail="Invalid question type.")
-    if mode not in ["practice", "exam"]:
-        raise HTTPException(status_code=400, detail="Invalid mode.")
-    if n_questions < 1 or n_questions > 60:
-        raise HTTPException(status_code=400, detail="Number of questions must be 1–60.")
-    if timer_minutes < 0 or timer_minutes > 300:
-        raise HTTPException(status_code=400, detail="Timer minutes must be 0–300.")
-
-    payload = {
-        "topic_text": final_text,
-        "difficulty": difficulty,
-        "qtype": qtype,
-        "n_questions": n_questions,
-        "need_explanations": (need_explanations.lower() == "yes"),
-        "mode": mode,
-    }
-
-    paper = generate_exam(payload)
-
-    exam_id = str(uuid.uuid4())
-    EXAMS[exam_id] = ExamSession(
-        exam_id=exam_id,
-        mode=mode,
-        meta={
-            "difficulty": difficulty,
-            "qtype": qtype,
-            "n_questions": n_questions,
-            "need_explanations": payload["need_explanations"],
-            "extracted_summary": extracted_summary,
-            "timer_minutes": timer_minutes,  # NEW
-        },
-        paper=paper,
-    )
-
-    return {
-        "exam_id": exam_id,
-        "redirect_url": f"/exam/{exam_id}",
-        "extracted_summary": extracted_summary,
-    }
-
-
+# ---------------------------
+# API (Exam data + submit)
+# ---------------------------
 @app.get("/api/exam/{exam_id}")
 def api_get_exam(exam_id: str):
-    if exam_id not in EXAMS:
-        raise HTTPException(status_code=404, detail="Exam not found")
-    sess = EXAMS[exam_id]
-    return {"exam_id": exam_id, "mode": sess.mode, "meta": sess.meta, "paper": sess.paper}
+    exam = EXAMS.get(exam_id)
+    if not exam:
+        return JSONResponse({"error": "Exam not found"}, status_code=404)
 
-@app.get("/ping")
-def ping():
-    return {"ok": True}
+    # Return safe data for client
+    # If mode == exam, do NOT send answers/explanations (until submitted)
+    mode = exam["meta"].get("mode", "practice")
+    include_answers = exam["meta"].get("include_answers", True)
+
+    questions_out = []
+    for idx, q in enumerate(exam["questions"], start=1):
+        base = {
+            "id": idx,
+            "type": q["type"],
+            "q": q["q"],
+        }
+        if q["type"] == "mcq":
+            base["options"] = q["options"]
+            # answers only if practice mode OR include_answers=false? (still hide in exam mode)
+            if mode == "practice" and include_answers:
+                base["answer"] = q["answer"]
+                base["explain"] = q["explain"]
+        else:
+            base["marks"] = q.get("marks", 3)
+            if mode == "practice" and include_answers:
+                base["model"] = q["model"]
+                base["key_points"] = q["key_points"]
+
+        questions_out.append(base)
+
+    return {
+        "id": exam["id"],
+        "title": exam["title"],
+        "meta": exam["meta"],
+        "questions": questions_out,
+        "submitted": exam["submitted"],
+        "result": exam["result"],
+    }
 
 
 @app.post("/api/submit/{exam_id}")
-async def api_submit(exam_id: str, request: Request):
-    if exam_id not in EXAMS:
-        raise HTTPException(status_code=404, detail="Exam not found")
-    sess = EXAMS[exam_id]
+async def api_submit_exam(exam_id: str, payload: Dict[str, Any]):
+    exam = EXAMS.get(exam_id)
+    if not exam:
+        return JSONResponse({"error": "Exam not found"}, status_code=404)
 
-    body = await request.json()
-    student_answers = body.get("answers", {})
-    if not isinstance(student_answers, dict):
-        raise HTTPException(status_code=400, detail="Invalid answers payload.")
+    answers: Dict[str, Any] = payload.get("answers", {})
+    time_over = bool(payload.get("time_over", False))
 
-    result = evaluate_submission(sess.paper, student_answers)
+    # lock submission (prevent resubmit)
+    if exam["submitted"]:
+        return {"ok": True, "submitted": True, "result": exam["result"]}
 
-    return {"exam_id": exam_id, "mode": sess.mode, "result": result, "paper": sess.paper}
+    total_marks = 0.0
+    got_marks = 0.0
+
+    missing_points: List[str] = []
+    feedback_lines: List[str] = []
+
+    for idx, q in enumerate(exam["questions"], start=1):
+        qid = str(idx)
+        if q["type"] == "mcq":
+            total_marks += 1
+            user = (answers.get(qid) or "").strip().upper()
+            if user == q["answer"]:
+                got_marks += 1
+            else:
+                missing_points.append(f"Q{idx}: Review concept behind the correct option.")
+        else:
+            marks = float(q.get("marks", 3))
+            total_marks += marks
+            user_text = str(answers.get(qid) or "")
+            score_pct = score_written(user_text, q.get("key_points", []))
+            # convert to marks
+            got_marks += (score_pct / 100.0) * marks
+            if score_pct < 60:
+                missing_points.append(f"Q{idx}: Include key points + clearer structure.")
+
+    percent = 0.0 if total_marks == 0 else (got_marks / total_marks) * 100.0
+    percent = round(percent, 2)
+    grade = grade_from_percent(percent)
+
+    # feedback
+    if percent < 50:
+        feedback_lines.append("Focus on core concepts and write clearer answers.")
+    elif percent < 70:
+        feedback_lines.append("Good start. Add more key points and improve accuracy.")
+    elif percent < 90:
+        feedback_lines.append("Nice work. Improve completeness and examples.")
+    else:
+        feedback_lines.append("Excellent! Keep practicing and refine explanation style.")
+
+    if time_over:
+        feedback_lines.append("Time finished — answers were auto-submitted and locked.")
+
+    result = {
+        "score": f"{round(got_marks,2)}/{round(total_marks,2)}",
+        "percentage": percent,
+        "grade": grade,
+        "feedback": " ".join(feedback_lines),
+        "missing_points": missing_points[:8],
+        "suggested_revision": [
+            "Revise definitions + examples",
+            "Practice application-based questions",
+            "Write answers with structure (point-wise)",
+        ],
+        "answer_key": build_answer_key(exam),  # after submit we can show answers
+    }
+
+    exam["submitted"] = True
+    exam["result"] = result
+
+    return {"ok": True, "submitted": True, "result": result}
+
+
+def build_answer_key(exam: Dict[str, Any]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    for idx, q in enumerate(exam["questions"], start=1):
+        if q["type"] == "mcq":
+            out[str(idx)] = {
+                "type": "mcq",
+                "answer": q["answer"],
+                "explain": q["explain"],
+            }
+        else:
+            out[str(idx)] = {
+                "type": "written",
+                "model": q["model"],
+                "key_points": q["key_points"],
+                "marks": q.get("marks", 3),
+            }
+    return out

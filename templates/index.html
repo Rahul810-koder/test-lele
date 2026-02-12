@@ -1,117 +1,115 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ExamGen</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body data-theme="dark">
-  <div class="bg"></div>
+<body class="ui">
+  <main class="page">
 
-  <main class="wrap">
-    <header class="topbar">
+    <header class="nav">
       <div class="brand">
-        <div class="logo">EG</div>
-        <div>
-          <div class="title">ExamGen</div>
-          <div class="sub">Generate exam papers + evaluation</div>
+        <div class="mark">E</div>
+        <div class="brandText">
+          <div class="brandName">ExamGen</div>
+          <div class="brandSub">AI-style exam builder (offline template)</div>
         </div>
+      </div>
+
+      <div class="navRight">
+        <button class="btn ghost" id="themeBtn" type="button">Theme</button>
       </div>
     </header>
 
-    <section class="card">
-      <h2 class="h2">Create a Test Paper</h2>
-      <div class="intro">
-  <p><b>What this does:</b> Paste a topic/notes or upload a PDF/image → we generate an exam-style paper (MCQ/Written) with answers, explanations, and scoring.</p>
-  <div class="how">
-    <div class="how-item"><b>1.</b> Choose difficulty + type</div>
-    <div class="how-item"><b>2.</b> Generate → new test page opens</div>
-    <div class="how-item"><b>3.</b> Solve + submit → get feedback</div>
-  </div>
-</div>
+    <section class="grid2">
+      <div class="hero">
+        <h1>Your tests,<br/>beautifully organized.</h1>
+        <p class="muted">
+          Paste notes or upload a PDF/Image → generate an exam-style paper (MCQ/Written) with
+          timer, practice/exam mode, scoring & feedback.
+        </p>
 
+        <h3 class="h3">Everything you need.</h3>
+        <ul class="iconList">
+          <li><span class="ic">◔</span> AI-style questions</li>
+          <li><span class="ic">▦</span> Docs / Notes input</li>
+          <li><span class="ic">✓</span> Exam + Practice modes</li>
+          <li><span class="ic">⌛</span> Timer + lock on time over</li>
+          <li><span class="ic">⎙</span> Print-ready layout</li>
+        </ul>
+      </div>
 
-      <form id="genForm" class="grid">
-        <div class="field col-12">
-          <label>Topic / Notes (paste text)</label>
-          <textarea id="topic_text" rows="6" placeholder="Paste chapter notes or topic here…"></textarea>
-        </div>
+      <div class="card">
+        <h2>Create a Test</h2>
 
-        <div class="field col-12">
-          <label>Upload PDF / Image (optional)</label>
-          <input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" />
-          <div class="hint">If you upload a file, questions will be generated only from extracted content.</div>
-        </div>
+        <form class="form" action="/create" method="post" enctype="multipart/form-data">
+          <label class="label">Topic / Notes</label>
+          <textarea class="input" name="topic" placeholder="Example: Class 10 Science - Acids, Bases and Salts"></textarea>
+          <div class="hint">Tip: Keep it focused (one chapter / one topic) for better questions.</div>
 
-        <div class="field col-6">
-          <label>Difficulty</label>
-          <select id="difficulty">
-            <option>Easy</option>
-            <option>Medium</option>
-            <option>Hard</option>
-            <option>Mixed</option>
-          </select>
-        </div>
+          <label class="label">Upload PDF / Image (optional)</label>
+          <input class="file" type="file" name="file" accept=".pdf,.png,.jpg,.jpeg"/>
 
-        <div class="field col-6">
-          <label>Question Type</label>
-          <select id="qtype">
-            <option>MCQ</option>
-            <option>Written</option>
-            <option>Both</option>
-          </select>
-        </div>
-
-        <!-- ✅ FIXED: Number of Questions first -->
-        <div class="field col-6">
-          <label>Number of Questions</label>
-          <input id="n_questions" type="number" min="1" max="60" value="15" />
-        </div>
-
-        <!-- ✅ FIXED: Timer has its own input -->
-        <div class="field col-6">
-          <label>Timer (minutes)</label>
-          <input id="timer_minutes" type="number" min="0" max="300" value="3" />
-          <div class="hint">Set 0 to disable timer.</div>
-        </div>
-
-        <div class="field col-6">
-          <label>Answers & Explanations</label>
-          <select id="need_explanations">
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </div>
-
-        <div class="field col-6">
-          <label>Exam Mode</label>
-          <div class="radioBox">
-            <label class="radio">
-              <input type="radio" name="mode" value="practice" checked />
-              <div>
-                <b>Practice Mode</b>
-                <div class="hint">Answers/explanations can be revealed while solving</div>
-              </div>
-            </label>
-            <label class="radio">
-              <input type="radio" name="mode" value="exam" />
-              <div>
-                <b>Exam Mode</b>
-                <div class="hint">Answers/explanations hidden until submission</div>
-              </div>
-            </label>
+          <div class="row2">
+            <div>
+              <label class="label">Difficulty</label>
+              <select class="input" name="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+                <option value="mixed">Mixed</option>
+              </select>
+            </div>
+            <div>
+              <label class="label">Question Type</label>
+              <select class="input" name="question_type">
+                <option value="mcq">MCQ</option>
+                <option value="written">Written</option>
+                <option value="both">Both</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div class="col-12 actions">
-          <button class="btn" id="generateBtn" type="submit">Generate Test Paper</button>
-          <div id="status" class="status"></div>
-        </div>
-      </form>
+          <div class="row2">
+            <div>
+              <label class="label">Number of Questions</label>
+              <input class="input" name="num_questions" type="number" value="10" min="3" max="50"/>
+            </div>
+            <div>
+              <label class="label">Timer (minutes)</label>
+              <input class="input" name="timer_minutes" type="number" value="0" min="0" max="180"/>
+              <div class="hint">Set 0 to disable timer.</div>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label class="label">Answers & Explanations</label>
+              <select class="input" name="include_answers">
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div>
+              <label class="label">Exam Mode</label>
+              <select class="input" name="exam_mode">
+                <option value="practice">Practice (reveal allowed)</option>
+                <option value="exam">Exam (reveal after submit)</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="btn" type="submit">Generate Test Paper</button>
+          <div class="muted small">
+            Note: Image OCR is not included in this version. PDF text extraction works only if pypdf installed.
+          </div>
+        </form>
+      </div>
     </section>
   </main>
 
   <script src="/static/app.js"></script>
- </body>
- </html>
+</body>
+</html>

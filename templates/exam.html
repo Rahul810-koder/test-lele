@@ -1,55 +1,57 @@
-
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Exam</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body data-theme="dark">
-  <div class="bg"></div>
-
-  <main class="wrap">
-    <header class="topbar">
+<body class="ui">
+  <main class="page">
+    <header class="nav">
       <div class="brand">
-        <div class="logo">EG</div>
-        <div>
-          <div class="title">Test Paper</div>
-          <div class="sub" id="subline">Loading…</div>
+        <div class="mark">E</div>
+        <div class="brandText">
+          <div class="brandName">ExamGen</div>
+          <div class="brandSub" id="paperMeta">Test paper</div>
         </div>
       </div>
 
-      <div class="top-actions">
-        <div class="pill" id="timerPill" style="display:none;">⏳ 00:00</div>
-        <div class="pill" id="progressPill">Q 0/0 • 0 answered</div>
+      <div class="navRight top-actions">
+        <span class="pill" id="timerPill" style="display:none;">⏳ 00:00</span>
+        <span class="pill" id="progressPill">Loading…</span>
         <button class="btn ghost" id="themeBtn" type="button">Theme</button>
         <button class="btn ghost" id="printBtn" type="button">Print</button>
       </div>
     </header>
 
-    <section class="card" id="paperCard">
-      <div id="paper"></div>
+    <section class="examWrap">
+      <div class="examCard">
+        <div class="examHeader">
+          <h1 class="examTitle" id="paperTitle">Test Paper</h1>
+          <div class="examSub" id="paperInfo">Answer all questions. Use clear steps.</div>
+        </div>
 
-      <div class="actionsRow">
-        <button class="btn" id="submitBtn" type="button">Submit Exam</button>
-        <div class="status" id="submitStatus"></div>
+        <div id="paper"></div>
+
+        <div class="examFooter">
+          <button class="btn" id="submitBtn" type="button">Submit Exam</button>
+          <div class="status" id="submitStatus"></div>
+        </div>
       </div>
 
-      <div id="result" class="result"></div>
+      <div class="resultCard" id="result" style="display:none;"></div>
     </section>
+
     <div class="modal" id="timeOverModal" style="display:none;">
-  <div class="modal-card">
-    <h3>Time’s up ⏳</h3>
-    <p>Your answers are locked and the exam is submitted automatically.</p>
-    <button class="btn" id="timeOverOk" type="button">OK</button>
-  </div>
-</div>
-
+      <div class="modal-card">
+        <h3>Time’s up ⏳</h3>
+        <p>Your answers are locked and the exam is submitted automatically.</p>
+        <button class="btn" id="timeOverOk" type="button">OK</button>
+      </div>
+    </div>
   </main>
-
-  <script>
-    const examId = "{{ exam_id }}";
-  </script>
-  <script src="/static/exam.js"></script>
+ 
+   <script src="/static/exam.js"></script>
 </body>
 </html>
