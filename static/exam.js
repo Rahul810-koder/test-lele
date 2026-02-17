@@ -5,12 +5,14 @@ const $ = (id) => document.getElementById(id);
 let EXAM = null;
 let LOCKED = false;
 let TIMER = null;
+
 function stopTimer(){
   if (TIMER) {
     clearInterval(TIMER);
     TIMER = null;
   }
 }
+
 let timeOverAuto = false;
 
 
@@ -175,6 +177,9 @@ function renderExam(exam){
 }
 
 function startTimer(seconds){
+
+  stopTimer(); // prevents multiple timers
+function startTimer(seconds){
   const pill = $("timerPill");
   pill.style.display = "inline-flex";
 
@@ -197,6 +202,7 @@ function startTimer(seconds){
 }
 
 async function submitExam(time_over=false){
+  
   if (!EXAM || LOCKED && !time_over) return;
   stopTimer();
   setLocked(true);
@@ -290,13 +296,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   $("submitBtn")?.addEventListener("click", async () => {
-    if (timeOverAuto) return; // already submitted
-    await submitExam(false);
-  });
+
+  if (timeOverAuto) return;
+
+  stopTimer();          // ⭐⭐⭐ TIMER STOP HERE
+  setLocked(true);      // lock answers instantly
+
+  await submitExam(false);
+
+});
 
   if (!examId) {
     $("submitStatus").textContent = "Error: examId missing in URL.";
     return;
   }
   await loadExam();
-});
+})};
