@@ -7,7 +7,7 @@ let LOCKED = false;
 let TIMER = null;
 function stopTimer(){
   if (TIMER) {
-    stopTimer();
+    clearInterval(TIMER);
     TIMER = null;
   }
 }
@@ -184,7 +184,7 @@ function startTimer(seconds){
   TIMER = setInterval(async () => {
     left--;
     if (left <= 0) {
-      clearInterval(TIMER);
+      stopTimer();
       pill.textContent = `⏳ 00:00`;
       timeOverAuto = true;
       setLocked(true);
