@@ -5,7 +5,14 @@ const $ = (id) => document.getElementById(id);
 let EXAM = null;
 let LOCKED = false;
 let TIMER = null;
+function stopTimer(){
+  if (TIMER) {
+    stopTimer();
+    TIMER = null;
+  }
+}
 let timeOverAuto = false;
+
 
 function applyTheme(theme){
   document.documentElement.setAttribute("data-theme", theme);
@@ -191,7 +198,7 @@ function startTimer(seconds){
 
 async function submitExam(time_over=false){
   if (!EXAM || LOCKED && !time_over) return;
-
+  stopTimer();
   setLocked(true);
   $("submitStatus").textContent = "Submitting…";
 
