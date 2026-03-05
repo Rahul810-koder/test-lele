@@ -3,113 +3,111 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ExamGen</title>
+  <title>Test lele</title>
   <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body class="ui">
+<body>
   <main class="page">
-
     <header class="nav">
       <div class="brand">
-        <div class="mark">E</div>
-        <div class="brandText">
-          <div class="brandName">ExamGen</div>
-          <div class="brandSub">AI-style exam builder (offline template)</div>
+        <div class="mark">TL</div>
+        <div>
+          <div class="brandName">Test lele</div>
+          <div class="brandSub">AI exam builder</div>
         </div>
       </div>
-
       <div class="navRight">
-        <button class="btn ghost" id="themeBtn" type="button">Theme</button>
+        <button class="btn ghost" id="themeBtn" type="button">🌙 Theme</button>
       </div>
     </header>
 
-    <section class="grid2">
-      <div class="hero">
-        <h1>Your tests,<br/>beautifully organized.</h1>
-        <p class="muted">
-          Paste notes or upload a PDF/Image → generate an exam-style paper (MCQ/Written) with
-          timer, practice/exam mode, scoring & feedback.
-        </p>
-
-        <h3 class="h3">Everything you need.</h3>
-        <ul class="iconList">
-          <li><span class="ic">◔</span> AI-style questions</li>
-          <li><span class="ic">▦</span> Docs / Notes input</li>
-          <li><span class="ic">✓</span> Exam + Practice modes</li>
-          <li><span class="ic">⌛</span> Timer + lock on time over</li>
-          <li><span class="ic">⎙</span> Print-ready layout</li>
-        </ul>
+    <div class="home-hero">
+      <h1>Test lele.</h1>
+      <p>Paste your notes or upload a PDF → get a full test paper with MCQ, written questions, timer, and auto-scoring.</p>
+      <div class="feat-tags">
+        <span class="feat-tag">⏱ Timed exams</span>
+        <span class="feat-tag">✏️ Written answers</span>
+        <span class="feat-tag">📷 Photo upload</span>
+        <span class="feat-tag">🎯 Auto scoring</span>
+        <span class="feat-tag">🌙 Dark mode</span>
+        <span class="feat-tag">🖨 Print ready</span>
       </div>
+    </div>
 
-      <div class="card">
-        <h2>Create a Test</h2>
+    <div class="card">
+      <h2>Create a Test</h2>
+      <form class="form" action="/create" method="post" enctype="multipart/form-data">
 
-        <form class="form" action="/create" method="post" enctype="multipart/form-data">
+        <div class="field">
           <label class="label">Topic / Notes</label>
-          <textarea class="input" name="topic" placeholder="Example: Class 10 Science - Acids, Bases and Salts"></textarea>
-          <div class="hint">Tip: Keep it focused (one chapter / one topic) for better questions.</div>
+          <textarea class="input" name="topic" placeholder="e.g. Class 10 Science — Acids, Bases and Salts"></textarea>
+          <span class="hint">Keep it focused to one chapter or topic for best results.</span>
+        </div>
 
-          <label class="label">Upload PDF / Image (optional)</label>
-          <input class="file" type="file" name="file" accept=".pdf,.png,.jpg,.jpeg"/>
+        <div class="field">
+          <label class="label">Upload PDF or Image (optional)</label>
+          <label class="file-upload">
+            <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg"/>
+            <span>📎</span>
+            <span class="file-text">Choose file…</span>
+          </label>
+        </div>
 
-          <div class="row2">
-            <div>
-              <label class="label">Difficulty</label>
-              <select class="input" name="difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-                <option value="mixed">Mixed</option>
-              </select>
-            </div>
-            <div>
-              <label class="label">Question Type</label>
-              <select class="input" name="question_type">
-                <option value="mcq">MCQ</option>
-                <option value="written">Written</option>
-                <option value="both">Both</option>
-              </select>
-            </div>
+        <div class="row2">
+          <div class="field">
+            <label class="label">Difficulty</label>
+            <select class="input" name="difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+              <option value="mixed">Mixed</option>
+            </select>
           </div>
-
-          <div class="row2">
-            <div>
-              <label class="label">Number of Questions</label>
-              <input class="input" name="num_questions" type="number" value="10" min="3" max="50"/>
-            </div>
-            <div>
-              <label class="label">Timer (minutes)</label>
-              <input class="input" name="timer_minutes" type="number" value="0" min="0" max="180"/>
-              <div class="hint">Set 0 to disable timer.</div>
-            </div>
+          <div class="field">
+            <label class="label">Question Type</label>
+            <select class="input" name="question_type">
+              <option value="mcq">MCQ only</option>
+              <option value="written">Written only</option>
+              <option value="both" selected>Both</option>
+            </select>
           </div>
+        </div>
 
-          <div class="row2">
-            <div>
-              <label class="label">Answers & Explanations</label>
-              <select class="input" name="include_answers">
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-            <div>
-              <label class="label">Exam Mode</label>
-              <select class="input" name="exam_mode">
-                <option value="practice">Practice (reveal allowed)</option>
-                <option value="exam">Exam (reveal after submit)</option>
-              </select>
-            </div>
+        <div class="row2">
+          <div class="field">
+            <label class="label">Number of Questions</label>
+            <input class="input" name="num_questions" type="number" value="10" min="3" max="50"/>
           </div>
-
-          <button class="btn" type="submit">Generate Test Paper</button>
-          <div class="muted small">
-            Note: Image OCR is not included in this version. PDF text extraction works only if pypdf installed.
+          <div class="field">
+            <label class="label">Timer (minutes)</label>
+            <input class="input" name="timer_minutes" type="number" value="0" min="0" max="180"/>
+            <span class="hint">0 = no timer</span>
           </div>
-        </form>
-      </div>
-    </section>
-  </main>
+        </div>
 
+        <div class="row2">
+          <div class="field">
+            <label class="label">Include Answers</label>
+            <select class="input" name="include_answers">
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">Mode</label>
+            <select class="input" name="exam_mode">
+              <option value="practice">Practice (reveal anytime)</option>
+              <option value="exam">Exam (reveal after submit)</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:13px;">
+          Generate Test →
+        </button>
+      </form>
+    </div>
+   </main>
   <script src="/static/app.js"></script>
-</body>
-</html>
+ </body>
+ </html>

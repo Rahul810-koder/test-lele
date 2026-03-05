@@ -1,163 +1,266 @@
-// ===== ExamGen exam page logic =====
+// ===== Test lele — exam.js =====
 const examId = (window.location.pathname.split("/").filter(Boolean).pop() || "").trim();
 const $ = (id) => document.getElementById(id);
 
 let EXAM = null;
 let LOCKED = false;
-let TIMER = null;
+let TIMER_ID = null;
+let TIME_OVER_AUTO = false;
 
-function stopTimer(){
-  if (TIMER) {
-    clearInterval(TIMER);
-    TIMER = null;
-  }
+// -- Theme --
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  localStorage.setItem("theme", t);
 }
-
-let timeOverAuto = false;
-
-
-function applyTheme(theme){
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("theme", theme);
-}
-
-function toggleTheme(){
+function toggleTheme() {
   const cur = document.documentElement.getAttribute("data-theme") || "light";
   applyTheme(cur === "dark" ? "light" : "dark");
 }
 
-function fmtTime(sec){
-  const m = String(Math.floor(sec / 60)).padStart(2,"0");
-  const s = String(sec % 60).padStart(2,"0");
+// -- Timer --
+function fmtTime(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2, "0");
+  const s = String(sec % 60).padStart(2, "0");
   return `${m}:${s}`;
 }
 
-function setLocked(on){
-  LOCKED = on;
-  // disable inputs/textareas
-  document.querySelectorAll("input, textarea, button.kbtn").forEach(el => {
-    if (el.id === "themeBtn" || el.id === "printBtn") return;
-    if (el.id === "timeOverOk") return;
-    if (el.id === "submitBtn") return; // submit stays clickable (but we auto submit)
-    el.disabled = on;
-  });
+function stopTimer() {
+  if (TIMER_ID) { clearInterval(TIMER_ID); TIMER_ID = null; }
 }
 
-function collectAnswers(){
-  const answers = {};
-  EXAM.questions.forEach(q => {
-    const qid = String(q.id);
+function startTimer(seconds) {
+  stopTimer();
+  const pill = $("timerPill");
+  pill.style.display = "inline-flex";
+  let left = seconds;
+  pill.textContent = `⏱ ${fmtTime(left)}`;
+
+  TIMER_ID = setInterval(async () => {
+    left--;
+    const pill = $("timerPill");
+
+    // Color warning
+    if (left <= 60) pill.className = "pill danger";
+    else if (left <= 120) pill.className = "pill warn";
+
+    if (left <= 0) {
+      stopTimer();
+      pill.textContent = "⏱ 00:00";
+      TIME_OVER_AUTO = true;
+      setLocked(true);
+      $("timeOverModal").style.display = "grid";
+      await submitExam(true);
+      return;
+    }
+    pill.textContent = `⏱ ${fmtTime(left)}`;
+  }, 1000);
+}
+
+// -- Lock --
+function setLocked(on) {
+  LOCKED = on;
+  document.querySelectorAll("input, textarea").forEach(el => {
+    if (!["themeBtn","printBtn","timeOverOk","submitBtn"].includes(el.id)) {
+      el.disabled = on;
+    }
+  });
+  // Also lock photo areas visually
+  document.querySelectorAll(".q-card").forEach(card => {
+    if (on) card.classList.add("locked");
+    else card.classList.remove("locked");
+  });
+  if (on) {
+    const btn = $("submitBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Submitted ✓"; }
+  }
+}
+
+// -- Progress --
+function updateProgress() {
+  if (!EXAM) return;
+  let answered = 0;
+  EXAM.questions.forEach((q, i) => {
+    const idx = i + 1;
+    const card = document.querySelector(`.q-card[data-qid="${idx}"]`);
+    let isAnswered = false;
     if (q.type === "mcq") {
-      const picked = document.querySelector(`input[name="q_${qid}"]:checked`);
-      answers[qid] = picked ? picked.value : "";
+      const picked = document.querySelector(`input[name="q_${idx}"]:checked`);
+      if (picked) isAnswered = true;
     } else {
-      const ta = document.querySelector(`textarea[name="q_${qid}"]`);
-      answers[qid] = ta ? ta.value : "";
+      const ta = document.querySelector(`textarea[name="q_${idx}"]`);
+      const photos = window._photos && window._photos[idx];
+      if ((ta && ta.value.trim()) || (photos && photos.length > 0)) isAnswered = true;
+    }
+    if (isAnswered) {
+      answered++;
+      card && card.classList.add("answered");
+    } else {
+      card && card.classList.remove("answered");
+    }
+  });
+  $("progressPill").textContent = `${answered} / ${EXAM.questions.length} answered`;
+}
+
+// -- Collect answers --
+function collectAnswers() {
+  const answers = {};
+  EXAM.questions.forEach((q, i) => {
+    const idx = String(i + 1);
+    if (q.type === "mcq") {
+      const picked = document.querySelector(`input[name="q_${idx}"]:checked`);
+      answers[idx] = picked ? picked.value : "";
+    } else {
+      const ta = document.querySelector(`textarea[name="q_${idx}"]`);
+      answers[idx] = ta ? ta.value : "";
     }
   });
   return answers;
 }
 
-function updateProgress(){
-  if (!EXAM) return;
-  let answered = 0;
-  EXAM.questions.forEach(q => {
-    const qid = String(q.id);
-    if (q.type === "mcq") {
-      const picked = document.querySelector(`input[name="q_${qid}"]:checked`);
-      if (picked) answered++;
-    } else {
-      const ta = document.querySelector(`textarea[name="q_${qid}"]`);
-      if (ta && ta.value.trim().length > 0) answered++;
-    }
-  });
-  $("progressPill").textContent = `Q ${EXAM.questions.length}/${EXAM.questions.length} • ${answered} answered`;
-}
-
-function renderExam(exam){
+// -- Render --
+function renderExam(exam) {
   EXAM = exam;
+  window._photos = {}; // photo store: { qid: [dataURL, ...] }
 
   $("paperTitle").textContent = exam.title || "Test Paper";
   const meta = exam.meta || {};
-  $("paperMeta").textContent = `${meta.mode || "practice"} • ${meta.difficulty || ""} • ${meta.qtype || ""}`;
-  $("paperInfo").textContent = (meta.mode === "exam")
-    ? "Exam Mode: answers will be shown after submission. Use clear steps."
-    : "Practice Mode: you can reveal answers (if enabled).";
+  $("paperMeta").textContent = [
+    meta.mode || "practice",
+    meta.difficulty || "",
+    meta.qtype || ""
+  ].filter(Boolean).join(" · ");
+  $("paperInfo").textContent = meta.mode === "exam"
+    ? "Exam Mode — answers shown after submission."
+    : "Practice Mode — reveal answers anytime.";
 
   const wrap = $("paper");
   wrap.innerHTML = "";
 
-  exam.questions.forEach((q) => {
-    const qid = String(q.id);
+  exam.questions.forEach((q, i) => {
+    const idx = i + 1;
+    const qid = String(idx);
+
+    // Detect difficulty from question text
+    const diffMatch = q.q.match(/\[(EASY|MEDIUM|HARD)\]/i);
+    const diff = diffMatch ? diffMatch[1].toLowerCase() : "medium";
+    const cleanQ = q.q.replace(/\[(EASY|MEDIUM|HARD)\]\s*/i, "").trim();
+
     const card = document.createElement("div");
-    card.className = "q";
+    card.className = "q-card";
+    card.dataset.qid = qid;
 
-    const head = document.createElement("div");
-    head.className = "qHead";
-
-    const tag = document.createElement("div");
-    tag.className = "qTag";
-    tag.textContent = `Q${qid} • ${q.type.toUpperCase()} ${q.q.includes("[HARD]") ? "• HARD" : q.q.includes("[MEDIUM]") ? "• MEDIUM" : "• EASY"}`;
-
-    const marks = document.createElement("div");
-    marks.className = "qMarks";
-    marks.textContent = q.type === "mcq" ? "1 marks" : `${q.marks || 3} marks`;
-
-    head.appendChild(tag);
-    head.appendChild(marks);
-
-    const text = document.createElement("div");
-    text.className = "qText";
-    text.textContent = q.q;
-
-    card.appendChild(head);
-    card.appendChild(text);
+    card.innerHTML = `
+      <div class="q-head">
+        <div class="q-meta">
+          <span class="q-num">Q${idx} · ${q.type.toUpperCase()}</span>
+          <span class="q-diff ${diff}">${diff.charAt(0).toUpperCase() + diff.slice(1)}</span>
+        </div>
+        <span class="q-marks">${q.type === "mcq" ? "1 mark" : `${q.marks || 3} marks`}</span>
+      </div>
+      <div class="q-text">${cleanQ}</div>
+    `;
 
     if (q.type === "mcq") {
       (q.options || []).forEach(opt => {
-        const lab = document.createElement("label");
-        lab.className = "opt";
-        lab.innerHTML = `
+        const label = document.createElement("label");
+        label.className = "opt";
+        label.innerHTML = `
           <input type="radio" name="q_${qid}" value="${opt.key}">
           <span><b>${opt.key}.</b> ${opt.text}</span>
         `;
-        card.appendChild(lab);
+        label.querySelector("input").addEventListener("change", updateProgress);
+        card.appendChild(label);
       });
 
-      // Practice reveal button only if answer present
       if (meta.mode === "practice" && meta.include_answers) {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "kbtn";
-        btn.textContent = "Reveal Answer Key";
+        btn.className = "reveal-btn";
+        btn.innerHTML = "👁 Reveal Answer";
         btn.addEventListener("click", () => {
           const box = document.createElement("div");
-          box.className = "status";
-          box.style.marginTop = "10px";
-          box.innerHTML = `<b>Answer:</b> ${q.answer} <br/><b>Why:</b> ${q.explain || ""}`;
+          box.className = "key-box";
+          box.innerHTML = `<b>Answer:</b> ${q.answer}<br/><b>Explanation:</b> ${q.explain || "—"}`;
           btn.replaceWith(box);
         });
         card.appendChild(btn);
       }
+
     } else {
+      // Written answer: type or photo tabs
+      const tabs = document.createElement("div");
+      tabs.className = "answer-tabs";
+      tabs.innerHTML = `
+        <button type="button" class="answer-tab active" data-tab="type">✏️ Type</button>
+        <button type="button" class="answer-tab" data-tab="photo">📷 Upload Photo</button>
+      `;
+      card.appendChild(tabs);
+
+      // Type panel
+      const typePanel = document.createElement("div");
+      typePanel.dataset.panel = "type";
       const ta = document.createElement("textarea");
-      ta.className = "answerBox";
+      ta.className = "answer-box";
       ta.name = `q_${qid}`;
-      ta.placeholder = "Write your answer…";
+      ta.placeholder = "Write your answer here…";
       ta.addEventListener("input", updateProgress);
-      card.appendChild(ta);
+      typePanel.appendChild(ta);
+      card.appendChild(typePanel);
+
+      // Photo panel
+      const photoPanel = document.createElement("div");
+      photoPanel.dataset.panel = "photo";
+      photoPanel.style.display = "none";
+      photoPanel.innerHTML = `
+        <div class="photo-area" id="photoArea_${qid}">
+          <label class="photo-label" for="photoInput_${qid}">
+            <span class="ico">📷</span>
+            <span>Click to upload your handwritten answer</span>
+            <span style="font-size:.75rem;margin-top:2px;">JPG, PNG supported</span>
+          </label>
+          <input type="file" id="photoInput_${qid}" accept="image/*" multiple>
+          <div class="photo-preview" id="photoPreview_${qid}"></div>
+        </div>
+      `;
+      card.appendChild(photoPanel);
+
+      // Tab switching
+      tabs.querySelectorAll(".answer-tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          tabs.querySelectorAll(".answer-tab").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          const target = tab.dataset.tab;
+          typePanel.style.display = target === "type" ? "" : "none";
+          photoPanel.style.display = target === "photo" ? "" : "none";
+        });
+      });
+
+      // Photo input handler
+      photoPanel.querySelector(`#photoInput_${qid}`).addEventListener("change", (e) => {
+        const files = Array.from(e.target.files);
+        if (!window._photos[qid]) window._photos[qid] = [];
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            window._photos[qid].push(ev.target.result);
+            renderPhotoPreview(qid);
+            updateProgress();
+          };
+          reader.readAsDataURL(file);
+        });
+        e.target.value = ""; // reset so same file can be re-added
+      });
 
       if (meta.mode === "practice" && meta.include_answers) {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "kbtn";
-        btn.textContent = "Reveal Model Answer";
+        btn.className = "reveal-btn";
+        btn.innerHTML = "👁 Reveal Model Answer";
         btn.addEventListener("click", () => {
-          const box = document.createElement("div");
-          box.className = "status";
-          box.style.marginTop = "10px";
           const kp = (q.key_points || []).map(x => `<li>${x}</li>`).join("");
-          box.innerHTML = `<b>Model:</b> ${q.model || ""}<br/><b>Key points:</b><ul>${kp}</ul>`;
+          const box = document.createElement("div");
+          box.className = "key-box";
+          box.innerHTML = `<b>Model:</b> ${q.model || "—"}<br/><b>Key Points:</b><ul>${kp}</ul>`;
           btn.replaceWith(box);
         });
         card.appendChild(btn);
@@ -167,126 +270,127 @@ function renderExam(exam){
     wrap.appendChild(card);
   });
 
-  // Timer
+  // Start timer
   const tmin = Number(meta.timer_minutes || 0);
   if (tmin > 0) startTimer(tmin * 60);
 
-  // Bind progress
   document.addEventListener("change", updateProgress);
   updateProgress();
 }
 
-function startTimer(seconds){
+function renderPhotoPreview(qid) {
+  const preview = document.getElementById(`photoPreview_${qid}`);
+  if (!preview) return;
+  const photos = window._photos[qid] || [];
+  preview.innerHTML = photos.map((src, i) => `
+    <div class="photo-thumb">
+      <img src="${src}" alt="Answer photo ${i+1}">
+      <button class="rm-photo" data-qid="${qid}" data-idx="${i}" title="Remove">✕</button>
+    </div>
+  `).join("");
+  preview.querySelectorAll(".rm-photo").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const q = btn.dataset.qid;
+      const idx = Number(btn.dataset.idx);
+      window._photos[q].splice(idx, 1);
+      renderPhotoPreview(q);
+      updateProgress();
+    });
+  });
+}
 
-  stopTimer(); // prevents multiple timers
-function startTimer(seconds){
-  const pill = $("timerPill");
-  pill.style.display = "inline-flex";
+// -- Submit --
+async function submitExam(time_over = false) {
+  if (!EXAM) return;
+  if (LOCKED && !time_over) return;
 
-  let left = seconds;
-  pill.textContent = `⏳ ${fmtTime(left)}`;
+  stopTimer(); // ⭐ Timer stops on submit
+  setLocked(true);
 
-  TIMER = setInterval(async () => {
-    left--;
-    if (left <= 0) {
-      stopTimer();
-      pill.textContent = `⏳ 00:00`;
-      timeOverAuto = true;
-      setLocked(true);
-      $("timeOverModal").style.display = "grid";
-      await submitExam(true); // auto submit
+  const status = $("submitStatus");
+  status.textContent = "Submitting…";
+  status.className = "sub-status";
+
+  try {
+    const r = await fetch(`/api/submit/${examId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers: collectAnswers(), time_over })
+    });
+    const data = await r.json();
+    if (!data.ok) {
+      status.textContent = "Submit failed. Try again.";
+      status.className = "sub-status err";
       return;
     }
-    pill.textContent = `⏳ ${fmtTime(left)}`;
-  }, 1000);
-}
-
-async function submitExam(time_over=false){
-  
-  if (!EXAM || LOCKED && !time_over) return;
-  stopTimer();
-  setLocked(true);
-  $("submitStatus").textContent = "Submitting…";
-
-  const payload = {
-    answers: collectAnswers(),
-    time_over: time_over
-  };
-
-  const r = await fetch(`/api/submit/${examId}`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(payload)
-  });
-
-  const data = await r.json();
-  if (!data.ok) {
-    $("submitStatus").textContent = "Submit failed.";
-    return;
+    status.textContent = "Submitted ✓";
+    status.className = "sub-status ok";
+    showResult(data.result);
+  } catch (err) {
+    status.textContent = "Network error.";
+    status.className = "sub-status err";
   }
-
-  $("submitStatus").textContent = "Submitted ✅";
-  showResult(data.result);
 }
 
-function showResult(res){
+function showResult(res) {
   const box = $("result");
   box.style.display = "block";
+  box.className = "result-card";
 
   const miss = (res.missing_points || []).map(x => `<li>${x}</li>`).join("");
   const rev = (res.suggested_revision || []).map(x => `<li>${x}</li>`).join("");
 
   box.innerHTML = `
-    <h2 style="margin-top:0">Result</h2>
-    <div class="status"><b>Score:</b> ${res.score} &nbsp; <b>Percentage:</b> ${res.percentage}% &nbsp; <b>Grade:</b> ${res.grade}</div>
-    <div class="status" style="margin-top:8px"><b>Feedback:</b> ${res.feedback}</div>
-
-    <h3>Missing points</h3>
-    <ul>${miss || "<li>—</li>"}</ul>
-
-    <h3>Suggested revision</h3>
-    <ul>${rev || "<li>—</li>"}</ul>
-
-    <h3>Answer key</h3>
-    <div class="status">Answers are visible after submission (exam mode) or via reveal (practice mode).</div>
+    <div class="result-score">${res.percentage}%</div>
+    <div class="result-grade">${res.grade} · ${res.score}</div>
+    <div class="result-feedback">${res.feedback}</div>
+    <hr/>
+    <div class="result-section">
+      <h3>Missing Points</h3>
+      <ul>${miss || "<li>None — great job!</li>"}</ul>
+    </div>
+    <div class="result-section">
+      <h3>Suggested Revision</h3>
+      <ul>${rev || "<li>—</li>"}</ul>
+    </div>
   `;
 
-  // After submit: show answer key below each question (for exam mode)
+  // Show answer keys on each card
   if (res.answer_key) {
     Object.keys(res.answer_key).forEach(qid => {
       const key = res.answer_key[qid];
-      const qCards = document.querySelectorAll(".q");
-      const idx = Number(qid) - 1;
-      const card = qCards[idx];
+      const card = document.querySelector(`.q-card[data-qid="${qid}"]`);
       if (!card) return;
-
-      const add = document.createElement("div");
-      add.className = "status";
-      add.style.marginTop = "10px";
-
+      const div = document.createElement("div");
+      div.className = "key-box";
+      div.style.marginTop = "12px";
       if (key.type === "mcq") {
-        add.innerHTML = `<b>Answer:</b> ${key.answer}<br/><b>Why:</b> ${key.explain || ""}`;
+        div.innerHTML = `<b>Answer:</b> ${key.answer}<br/><b>Explanation:</b> ${key.explain || "—"}`;
       } else {
         const kp = (key.key_points || []).map(x => `<li>${x}</li>`).join("");
-        add.innerHTML = `<b>Model:</b> ${key.model || ""}<br/><b>Key points:</b><ul>${kp}</ul>`;
+        div.innerHTML = `<b>Model:</b> ${key.model || "—"}<br/><b>Key Points:</b><ul>${kp}</ul>`;
       }
-      card.appendChild(add);
+      card.appendChild(div);
     });
   }
+
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-async function loadExam(){
-  const r = await fetch(`/api/exam/${examId}`);
-  const data = await r.json();
-  if (data.error) {
-    $("submitStatus").textContent = data.error;
-    return;
+async function loadExam() {
+  try {
+    const r = await fetch(`/api/exam/${examId}`);
+    const data = await r.json();
+    if (data.error) { $("submitStatus").textContent = data.error; return; }
+    renderExam(data);
+  } catch {
+    $("submitStatus").textContent = "Failed to load exam.";
   }
-  renderExam(data);
 }
 
+// -- Init --
 document.addEventListener("DOMContentLoaded", async () => {
-  // theme
   applyTheme(localStorage.getItem("theme") || "light");
   $("themeBtn")?.addEventListener("click", toggleTheme);
   $("printBtn")?.addEventListener("click", () => window.print());
@@ -296,19 +400,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   $("submitBtn")?.addEventListener("click", async () => {
-
-  if (timeOverAuto) return;
-
-  stopTimer();          // ⭐⭐⭐ TIMER STOP HERE
-  setLocked(true);      // lock answers instantly
-
-  await submitExam(false);
-
-});
+    if (TIME_OVER_AUTO || LOCKED) return;
+    stopTimer();       // ⭐ Timer stops immediately on manual submit
+    await submitExam(false);
+  });
 
   if (!examId) {
-    $("submitStatus").textContent = "Error: examId missing in URL.";
+    $("submitStatus").textContent = "Error: missing exam ID in URL.";
     return;
   }
   await loadExam();
-})};
+});

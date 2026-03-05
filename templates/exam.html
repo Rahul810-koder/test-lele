@@ -3,55 +3,51 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Exam</title>
+  <title>Test lele</title>
   <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body class="ui">
+<body>
   <main class="page">
     <header class="nav">
       <div class="brand">
-        <div class="mark">E</div>
-        <div class="brandText">
-          <div class="brandName">ExamGen</div>
-          <div class="brandSub" id="paperMeta">Test paper</div>
+        <div class="mark">TL</div>
+        <div>
+          <div class="brandName">Test lele</div>
+          <div class="brandSub" id="paperMeta">Loading…</div>
         </div>
       </div>
-
-      <div class="navRight top-actions">
-        <span class="pill" id="timerPill" style="display:none;">⏳ 00:00</span>
+      <div class="navRight">
+        <span class="pill" id="timerPill" style="display:none;">⏱ 00:00</span>
         <span class="pill" id="progressPill">Loading…</span>
-        <button class="btn ghost" id="themeBtn" type="button">Theme</button>
-        <button class="btn ghost" id="printBtn" type="button">Print</button>
+        <button class="btn ghost" id="themeBtn" type="button">🌙 Theme</button>
+        <button class="btn ghost" id="printBtn" type="button">🖨 Print</button>
       </div>
     </header>
 
-    <section class="examWrap">
-      <div class="examCard">
-        <div class="examHeader">
-          <h1 class="examTitle" id="paperTitle">Test Paper</h1>
-          <div class="examSub" id="paperInfo">Answer all questions. Use clear steps.</div>
-        </div>
+    <div class="exam-header">
+      <h1 class="exam-title" id="paperTitle">Test Paper</h1>
+      <div class="exam-info" id="paperInfo">Answer all questions carefully.</div>
+    </div>
 
-        <div id="paper"></div>
+    <div id="paper"></div>
 
-        <div class="examFooter">
-          <button class="btn" id="submitBtn" type="button">Submit Exam</button>
-          <div class="status" id="submitStatus"></div>
-        </div>
+    <div class="exam-footer">
+      <div>
+        <button class="btn" id="submitBtn" type="button">Submit Exam</button>
       </div>
+      <div class="sub-status" id="submitStatus"></div>
+    </div>
 
-      <div class="resultCard" id="result" style="display:none;"></div>
-    </section>
+    <div id="result" style="display:none;"></div>
 
     <div class="modal" id="timeOverModal" style="display:none;">
       <div class="modal-card">
-        <h3>Time’s up ⏳</h3>
-        <p>Your answers are locked and the exam is submitted automatically.</p>
-        <button class="btn" id="timeOverOk" type="button">OK</button>
+        <h3>⏱ Time's Up!</h3>
+        <p>Your exam has been auto-submitted. Timer has stopped and answers are locked.</p>
+        <button class="btn" id="timeOverOk" type="button">View Results</button>
       </div>
     </div>
   </main>
- 
-   <script src="/static/exam.js"></script>
+  <script src="/static/exam.js"></script>
 </body>
-</html>
+ </html>
