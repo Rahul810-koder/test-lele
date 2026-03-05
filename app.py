@@ -249,6 +249,7 @@ def score_written(user_text: str, key_points: List[str]) -> float:
 # ---------------------------
 # Routes (UI)
 # ---------------------------
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "app_name": APP_NAME})
@@ -317,6 +318,7 @@ async def create_test(
         "submitted": False,
         "result": None,
     }
+    
 
     # Redirect to new page
     return RedirectResponse(url=f"/exam/{exam_id}", status_code=303)

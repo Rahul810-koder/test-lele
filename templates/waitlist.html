@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Test lele — Join the Waitlist</title>
+  <link rel="stylesheet" href="/static/styles.css"/>
+  <style>
+    .waitlist-wrap {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 48px 18px 80px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .3px;
+      margin-bottom: 20px;
+    }
+    .wl-title {
+      font-size: clamp(1.9rem, 5vw, 2.6rem);
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+    .wl-sub {
+      color: var(--muted);
+      font-size: .95rem;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .wl-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .wl-card h2 {
+      font-size: 1rem;
+      font-weight: 800;
+      margin-bottom: 18px;
+      letter-spacing: -.2px;
+    }
+    .count-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .count-num {
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+    .count-label {
+      font-size: .82rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 22px 0;
+    }
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 20px 0 8px;
+    }
+    .success-msg .tick { font-size: 2rem; margin-bottom: 8px; }
+    .success-msg h3 { font-weight: 900; margin-bottom: 6px; }
+    .success-msg p { color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <div class="waitlist-wrap">
+
+    <!-- Nav minimal -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+      <div class="brand">
+        <div class="mark">TL</div>
+        <div>
+          <div class="brandName">Test lele</div>
+        </div>
+      </div>
+      <button class="btn ghost" id="themeBtn" type="button">🌙 Theme</button>
+    </div>
+
+    <!-- Hero -->
+    <div class="badge">🚀 Coming Soon</div>
+    <h1 class="wl-title">Tests that actually<br/>teach you something.</h1>
+    <p class="wl-sub">
+      Paste your notes → get a full exam paper with MCQ, written questions,
+      timer, and instant AI feedback. We're launching soon.
+    </p>
+
+    <!-- Form card -->
+    <div class="wl-card">
+
+      <!-- Live count -->
+      <div class="count-row">
+        <span class="count-num" id="countNum">—</span>
+        <span class="count-label">people already on the waitlist</span>
+      </div>
+
+      <h2>Get early access</h2>
+
+      <!-- 
+        SETUP: Replace YOUR_FORM_ID below with your Formspree form ID.
+        Steps:
+          1. Go to https://formspree.io and sign up free
+          2. Create a new form → copy the form ID (looks like: xpwzgkla)
+          3. Replace YOUR_FORM_ID below
+      -->
+      <form class="form" id="waitlistForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+
+        <div class="field">
+          <label class="label">Your Name</label>
+          <input class="input" type="text" name="name" placeholder="Rahul Sharma" required/>
+        </div>
+
+        <div class="field">
+          <label class="label">Email Address</label>
+          <input class="input" type="email" name="email" placeholder="rahul@example.com" required/>
+        </div>
+
+        <div class="field">
+          <label class="label">What will you use Test lele for?</label>
+          <select class="input" name="use_case">
+            <option value="">Select one…</option>
+            <option value="self_study">Self study / practice</option>
+            <option value="teacher">I'm a teacher — making tests for students</option>
+            <option value="coaching">Coaching / tuition centre</option>
+            <option value="college">College / university work</option>
+            <option value="other">Just curious</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Any feedback or features you want? <span style="font-weight:400;text-transform:none;font-size:.85rem;">(optional)</span></label>
+          <textarea class="input" name="feedback" placeholder="e.g. I want hindi language support, or I want to share test links with friends…" style="min-height:80px;"></textarea>
+        </div>
+
+        <!-- Hidden field so you know which form this is -->
+        <input type="hidden" name="_subject" value="New Test lele waitlist signup!"/>
+        <input type="hidden" name="_next" value=""/>
+
+        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:13px;margin-top:4px;">
+          Join Waitlist →
+        </button>
+
+        <p style="font-size:.78rem;color:var(--muted);text-align:center;margin-top:10px;">
+          No spam. We'll only email you when we launch. 🙏
+        </p>
+      </form>
+
+      <!-- Success state -->
+      <div class="success-msg" id="successMsg">
+        <div class="tick">🎉</div>
+        <h3>You're on the list!</h3>
+        <p>We'll email you the moment Test lele launches.<br/>Tell your friends too!</p>
+        <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <a href="https://twitter.com/intent/tweet?text=I%20just%20joined%20the%20waitlist%20for%20Test%20lele%20%E2%80%94%20an%20AI%20exam%20builder%20that%20actually%20teaches%20you!%20%F0%9F%9A%80" target="_blank" class="btn ghost" style="font-size:.82rem;">Share on Twitter</a>
+          <a href="/" class="btn ghost" style="font-size:.82rem;">Back to Home</a>
+        </div>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- Features teaser -->
+      <div style="display:grid;gap:8px;">
+        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">What's coming</div>
+        <div style="font-size:.88rem;display:flex;gap:8px;align-items:center;"><span>✏️</span> AI-generated MCQ + written questions</div>
+        <div style="font-size:.88rem;display:flex;gap:8px;align-items:center;"><span>⏱</span> Timed exam mode with auto-submit</div>
+        <div style="font-size:.88rem;display:flex;gap:8px;align-items:center;"><span>📷</span> Upload handwritten answers as photos</div>
+        <div style="font-size:.88rem;display:flex;gap:8px;align-items:center;"><span>📊</span> Instant score + detailed feedback</div>
+        <div style="font-size:.88rem;display:flex;gap:8px;align-items:center;"><span>🔗</span> Share test links with anyone</div>
+      </div>
+    </div>
+
+    <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:28px;">
+      Made with ❤️ · Test lele © 2025
+    </p>
+  </div>
+
+  <script>
+    // Theme
+    (function(){
+      const saved = localStorage.getItem("theme") || "light";
+      document.documentElement.setAttribute("data-theme", saved);
+      document.getElementById("themeBtn").addEventListener("click", () => {
+        const cur = document.documentElement.getAttribute("data-theme");
+        const next = cur === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+      });
+    })();
+
+    // Form submit → show success state
+    const form = document.getElementById("waitlistForm");
+    const successMsg = document.getElementById("successMsg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector("button[type=submit]");
+      btn.disabled = true;
+      btn.textContent = "Submitting…";
+
+      try {
+        const res = await fetch(form.action, {
+          method: "POST",
+          body: new FormData(form),
+          headers: { "Accept": "application/json" }
+        });
+
+        if (res.ok) {
+          form.style.display = "none";
+          successMsg.style.display = "block";
+          // Bump the count visually
+          const cur = parseInt(document.getElementById("countNum").textContent) || 0;
+          document.getElementById("countNum").textContent = cur + 1;
+        } else {
+          btn.disabled = false;
+          btn.textContent = "Try again →";
+          alert("Something went wrong. Please try again!");
+        }
+      } catch {
+        btn.disabled = false;
+        btn.textContent = "Try again →";
+        alert("Network error. Please check your connection.");
+      }
+    });
+
+    // Fake realistic counter (replace with real DB count later)
+    // This gives a social proof feel during pre-launch
+    document.getElementById("countNum").textContent = Math.floor(Math.random() * 40) + 60;
+  </script>
+</body>
+</html>
