@@ -47,7 +47,80 @@
         <button class="btn" id="timeOverOk" type="button">View Results</button>
       </div>
     </div>
+    <!-- Waitlist Modal (shows after result) -->
+  <div class="wl-modal" id="wlModal" style="display:none;">
+    <div class="wl-modal-card">
+      <div class="wl-modal-head">
+        <h3>👋 How was Test lele?</h3>
+        <button class="wl-close" id="wlClose">✕</button>
+      </div>
+      <p class="wl-sub">Join our waitlist for new features + updates. Takes 20 seconds!</p>
+
+      <form class="form" id="wlForm" action="https://formspree.io/f/maqpwqev" method="POST">
+        <div class="field">
+          <label class="label">Your Name</label>
+          <input class="input" type="text" name="name" placeholder="Rahul Sharma" required/>
+        </div>
+        <div class="field">
+          <label class="label">Email Address</label>
+          <input class="input" type="email" name="email" placeholder="rahul@example.com" required/>
+        </div>
+        <div class="field">
+          <label class="label">Rate your experience</label>
+          <select class="input" name="rating">
+            <option value="">Select…</option>
+            <option value="5">⭐⭐⭐⭐⭐ Excellent!</option>
+            <option value="4">⭐⭐⭐⭐ Good</option>
+            <option value="3">⭐⭐⭐ Okay</option>
+            <option value="2">⭐⭐ Needs work</option>
+            <option value="1">⭐ Not good</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">What should we improve? <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <textarea class="input" name="feedback" placeholder="e.g. Add Hindi support, better questions, share results…" style="min-height:68px;"></textarea>
+        </div>
+        <input type="hidden" name="_subject" value="Test lele — post-exam feedback!"/>
+        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:12px;">
+          Submit Feedback →
+        </button>
+        <p style="font-size:.76rem;color:var(--muted);text-align:center;margin-top:8px;">No spam. Only launch updates. 🙏</p>
+      </form>
+
+      <div class="wl-success" id="wlSuccess">
+        <div class="tick">🙏</div>
+        <h3>Thank you!</h3>
+        <p>Your feedback means a lot to us.<br/>We'll keep building!</p>
+      </div>
+    </div>
+  </div>
   </main>
   <script src="/static/exam.js"></script>
+  <script>
+    // Waitlist modal close button for exam page
+    document.getElementById("wlClose")?.addEventListener("click", () => {
+      document.getElementById("wlModal").style.display = "none";
+    });
+    document.getElementById("wlModal")?.addEventListener("click", (e) => {
+      if (e.target === document.getElementById("wlModal"))
+        document.getElementById("wlModal").style.display = "none";
+    });
+    document.getElementById("wlForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector("button[type=submit]");
+      btn.disabled = true; btn.textContent = "Submitting…";
+      try {
+        const res = await fetch(e.target.action, {
+          method: "POST", body: new FormData(e.target),
+          headers: { "Accept": "application/json" }
+        });
+        if (res.ok) {
+          document.getElementById("wlForm").style.display = "none";
+          document.getElementById("wlSuccess").style.display = "block";
+          setTimeout(() => { document.getElementById("wlModal").style.display = "none"; }, 3000);
+        } else { btn.disabled = false; btn.textContent = "Try again →"; }
+      } catch { btn.disabled = false; btn.textContent = "Try again →"; }
+    });
+  </script>
 </body>
  </html>

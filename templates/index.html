@@ -8,6 +8,7 @@
 </head>
 <body>
   <main class="page">
+
     <header class="nav">
       <div class="brand">
         <div class="mark">TL</div>
@@ -17,6 +18,7 @@
         </div>
       </div>
       <div class="navRight">
+        <button class="btn ghost" id="waitlistBtn" type="button">🔔 Join Waitlist</button>
         <button class="btn ghost" id="themeBtn" type="button">🌙 Theme</button>
       </div>
     </header>
@@ -41,7 +43,7 @@
         <div class="field">
           <label class="label">Topic / Notes</label>
           <textarea class="input" name="topic" placeholder="e.g. Class 10 Science — Acids, Bases and Salts"></textarea>
-          <span class="hint">Keep it focused to one chapter or topic for best results.</span>
+          <span class="hint">Keep it focused to one chapter for best results.</span>
         </div>
 
         <div class="field">
@@ -105,9 +107,78 @@
         <button class="btn" type="submit" style="width:100%;justify-content:center;padding:13px;">
           Generate Test →
         </button>
+
       </form>
     </div>
-   </main>
+
+    <!-- Honest banner — bottom -->
+    <div style="
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    ">
+      🚧 <span><b>Early MVP</b> — Questions are template-based for now. Real AI integration coming soon.
+      <a href="#" onclick="document.getElementById('wlModal').style.display='grid'"
+         style="color:var(--text);font-weight:700;">Join the waitlist</a> to get notified.</span>
+    </div>
+
+  </main>
+
+  <!-- Waitlist Modal -->
+  <div class="wl-modal" id="wlModal" style="display:none;">
+    <div class="wl-modal-card">
+      <div class="wl-modal-head">
+        <h3>🔔 Join the Waitlist</h3>
+        <button class="wl-close" id="wlClose">✕</button>
+      </div>
+      <p class="wl-sub">Be the first to know when Test lele launches new features. No spam, ever.</p>
+
+      <form class="form" id="wlForm" action="https://formspree.io/f/maqpwqev" method="POST">
+        <div class="field">
+          <label class="label">Your Name</label>
+          <input class="input" type="text" name="name" placeholder="Rahul Sharma" required/>
+        </div>
+        <div class="field">
+          <label class="label">Email Address</label>
+          <input class="input" type="email" name="email" placeholder="rahul@example.com" required/>
+        </div>
+        <div class="field">
+          <label class="label">What will you use it for?</label>
+          <select class="input" name="use_case">
+            <option value="">Select one…</option>
+            <option value="self_study">Self study / practice</option>
+            <option value="teacher">Teacher — making tests for students</option>
+            <option value="coaching">Coaching / tuition centre</option>
+            <option value="college">College / university</option>
+            <option value="other">Just curious</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">Any feedback? <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <textarea class="input" name="feedback" placeholder="What features do you want? What's missing?" style="min-height:72px;"></textarea>
+        </div>
+        <input type="hidden" name="_subject" value="New Test lele waitlist signup!"/>
+        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:12px;">
+          Join Waitlist →
+        </button>
+        <p style="font-size:.76rem;color:var(--muted);text-align:center;margin-top:8px;">No spam. Only launch updates. 🙏</p>
+      </form>
+
+      <div class="wl-success" id="wlSuccess">
+        <div class="tick">🎉</div>
+        <h3>You're on the list!</h3>
+        <p>We'll email you the moment something new drops.<br/>Thanks for supporting Test lele!</p>
+      </div>
+    </div>
+  </div>
+
   <script src="/static/app.js"></script>
- </body>
- </html>
+</body>
+</html>

@@ -307,3 +307,44 @@ hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+
+/* ── Waitlist Modal ── */
+.wl-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(4px);
+  display: grid; place-items: center;
+  padding: 18px; z-index: 999;
+}
+.wl-modal-card {
+  width: min(480px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.wl-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.wl-modal-head h3 { font-size: 1.2rem; font-weight: 900; letter-spacing: -.3px; }
+.wl-close {
+  border: none; background: var(--surface2);
+  border-radius: 8px; width: 30px; height: 30px;
+  display: grid; place-items: center;
+  cursor: pointer; font-size: 1rem; color: var(--muted);
+  flex-shrink: 0;
+}
+.wl-close:hover { color: var(--text); }
+.wl-sub { color: var(--muted); font-size: .88rem; margin-bottom: 20px; }
+.wl-success {
+  display: none; text-align: center; padding: 16px 0 8px;
+}
+.wl-success .tick { font-size: 2.2rem; margin-bottom: 10px; }
+.wl-success h3 { font-weight: 900; margin-bottom: 6px; }
+.wl-success p { color: var(--muted); font-size: .88rem; }

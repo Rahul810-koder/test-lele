@@ -331,6 +331,10 @@ def exam_page(request: Request, exam_id: str):
     return templates.TemplateResponse("exam.html", {"request": request, "app_name": APP_NAME})
 
 
+@app.get("/waitlist", response_class=HTMLResponse)
+def waitlist_page(request: Request):
+    return templates.TemplateResponse("waitlist.html", {"request": request})
+
 # ---------------------------
 # API (Exam data + submit)
 # ---------------------------
