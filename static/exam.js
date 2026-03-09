@@ -377,7 +377,7 @@ function showResult(res) {
 
   box.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  // Show waitlist popup 4 seconds after results appear
+  // Show waitlist popup 8 seconds after results appear
   setTimeout(() => {
     const modal = document.getElementById("wlModal");
     if (modal && !sessionStorage.getItem("wl_shown")) {
