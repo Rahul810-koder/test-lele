@@ -2,9 +2,120 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
   <title>Test lele</title>
   <link rel="stylesheet" href="/static/styles.css"/>
+  <style>
+    /* ── Mobile-first overrides ── */
+    @media (max-width: 600px) {
+
+      .page {
+        padding: 12px 14px 80px;
+      }
+
+      /* Nav */
+      .nav {
+        padding: 10px 0 14px;
+        flex-wrap: nowrap;
+        gap: 8px;
+      }
+      .brandName { font-size: .95rem; }
+      .brandSub  { display: none; }
+      .navRight  { gap: 6px; }
+      .btn.ghost {
+        padding: 8px 10px;
+        font-size: .78rem;
+      }
+
+      /* Banner */
+      .mvp-banner {
+        font-size: .78rem;
+        padding: 8px 12px;
+        gap: 6px;
+      }
+
+      /* Hero */
+      .home-hero { padding: 20px 0 16px; }
+      .home-hero h1 {
+        font-size: 2rem;
+        letter-spacing: -1px;
+        margin-bottom: 10px;
+      }
+      .home-hero p { font-size: .88rem; }
+
+      /* Feature tags — scroll horizontally */
+      .feat-tags {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .feat-tags::-webkit-scrollbar { display: none; }
+      .feat-tag {
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: .76rem;
+        padding: 4px 10px;
+      }
+
+      /* Card */
+      .card { padding: 18px 14px; }
+      .card h2 { font-size: 1rem; margin-bottom: 14px; }
+
+      /* Form fields */
+      .label { font-size: .75rem; }
+      .input, select, textarea {
+        font-size: 16px; /* prevents iOS zoom */
+        padding: 12px;
+        border-radius: 10px;
+      }
+      textarea { min-height: 80px; }
+
+      /* Row2 always single column on mobile */
+      .row2 { grid-template-columns: 1fr !important; gap: 10px; }
+
+      /* File upload */
+      .file-upload {
+        padding: 12px;
+        font-size: .85rem;
+      }
+
+      /* Submit button */
+      .submit-btn {
+        padding: 15px !important;
+        font-size: 1rem !important;
+        border-radius: 12px !important;
+        position: sticky;
+        bottom: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,.2);
+      }
+
+      /* Banner bottom */
+      .mvp-bottom {
+        font-size: .76rem;
+        margin-top: 16px;
+        padding: 10px 12px;
+      }
+
+      /* Modal */
+      .wl-modal-card {
+        padding: 20px 16px;
+        max-height: 92vh;
+        overflow-y: auto;
+      }
+      .wl-modal-head h3 { font-size: 1.05rem; }
+    }
+
+    /* Sticky bottom submit */
+    .submit-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 13px;
+      transition: all .2s;
+    }
+  </style>
 </head>
 <body>
   <main class="page">
@@ -18,14 +129,14 @@
         </div>
       </div>
       <div class="navRight">
-        <button class="btn ghost" id="waitlistBtn" type="button">🔔 Join Waitlist</button>
-        <button class="btn ghost" id="themeBtn" type="button">🌙 Theme</button>
+        <button class="btn ghost" id="waitlistBtn" type="button">🔔 Waitlist</button>
+        <button class="btn ghost" id="themeBtn" type="button">🌙</button>
       </div>
     </header>
 
     <div class="home-hero">
       <h1>Test lele.</h1>
-      <p>Paste your notes or upload a PDF → get a full test paper with MCQ, written questions, timer, and auto-scoring.</p>
+      <p>Paste your notes → get a full exam with MCQ, written questions, timer & auto-scoring.</p>
       <div class="feat-tags">
         <span class="feat-tag">⏱ Timed exams</span>
         <span class="feat-tag">✏️ Written answers</span>
@@ -42,7 +153,8 @@
 
         <div class="field">
           <label class="label">Topic / Notes</label>
-          <textarea class="input" name="topic" placeholder="e.g. Class 10 Science — Acids, Bases and Salts"></textarea>
+          <textarea class="input" name="topic"
+            placeholder="e.g. Class 10 Science — Acids, Bases and Salts"></textarea>
           <span class="hint">Keep it focused to one chapter for best results.</span>
         </div>
 
@@ -78,11 +190,13 @@
         <div class="row2">
           <div class="field">
             <label class="label">Number of Questions</label>
-            <input class="input" name="num_questions" type="number" value="10" min="3" max="50"/>
+            <input class="input" name="num_questions"
+              type="number" value="10" min="3" max="50"/>
           </div>
           <div class="field">
             <label class="label">Timer (minutes)</label>
-            <input class="input" name="timer_minutes" type="number" value="0" min="0" max="180"/>
+            <input class="input" name="timer_minutes"
+              type="number" value="0" min="0" max="180"/>
             <span class="hint">0 = no timer</span>
           </div>
         </div>
@@ -98,13 +212,13 @@
           <div class="field">
             <label class="label">Mode</label>
             <select class="input" name="exam_mode">
-              <option value="practice">Practice (reveal anytime)</option>
-              <option value="exam">Exam (reveal after submit)</option>
+              <option value="practice">Practice</option>
+              <option value="exam">Exam</option>
             </select>
           </div>
         </div>
 
-        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:13px;">
+        <button class="btn submit-btn" type="submit">
           Generate Test →
         </button>
 
@@ -112,7 +226,7 @@
     </div>
 
     <!-- Honest banner — bottom -->
-    <div style="
+    <div class="mvp-bottom" style="
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
@@ -124,7 +238,8 @@
       align-items: center;
       gap: 8px;
     ">
-      🚧 <span><b>Early MVP</b> — Questions are template-based for now. Real AI integration coming soon.
+      🚧 <span><b>Early MVP</b> — Questions are template-based for now.
+      Real AI integration coming soon.
       <a href="#" onclick="document.getElementById('wlModal').style.display='grid'"
          style="color:var(--text);font-weight:700;">Join the waitlist</a> to get notified.</span>
     </div>
@@ -138,43 +253,54 @@
         <h3>🔔 Join the Waitlist</h3>
         <button class="wl-close" id="wlClose">✕</button>
       </div>
-      <p class="wl-sub">Be the first to know when Test lele launches new features. No spam, ever.</p>
+      <p class="wl-sub">Be the first to know when Test lele launches. No spam, ever.</p>
 
-      <form class="form" id="wlForm" action="https://formspree.io/f/maqpwqev" method="POST">
+      <form class="form" id="wlForm"
+        action="https://formspree.io/f/maqpwqev" method="POST">
         <div class="field">
           <label class="label">Your Name</label>
-          <input class="input" type="text" name="name" placeholder="Rahul Sharma" required/>
+          <input class="input" type="text" name="name"
+            placeholder="Rahul Sharma" required/>
         </div>
         <div class="field">
           <label class="label">Email Address</label>
-          <input class="input" type="email" name="email" placeholder="rahul@example.com" required/>
+          <input class="input" type="email" name="email"
+            placeholder="rahul@example.com" required/>
         </div>
         <div class="field">
           <label class="label">What will you use it for?</label>
           <select class="input" name="use_case">
             <option value="">Select one…</option>
             <option value="self_study">Self study / practice</option>
-            <option value="teacher">Teacher — making tests for students</option>
+            <option value="teacher">Teacher — making tests</option>
             <option value="coaching">Coaching / tuition centre</option>
             <option value="college">College / university</option>
             <option value="other">Just curious</option>
           </select>
         </div>
         <div class="field">
-          <label class="label">Any feedback? <span style="font-weight:400;text-transform:none;">(optional)</span></label>
-          <textarea class="input" name="feedback" placeholder="What features do you want? What's missing?" style="min-height:72px;"></textarea>
+          <label class="label">Any feedback?
+            <span style="font-weight:400;text-transform:none;">(optional)</span>
+          </label>
+          <textarea class="input" name="feedback"
+            placeholder="What features do you want?"
+            style="min-height:68px;"></textarea>
         </div>
         <input type="hidden" name="_subject" value="New Test lele waitlist signup!"/>
-        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:12px;">
+        <button class="btn" type="submit"
+          style="width:100%;justify-content:center;padding:13px;">
           Join Waitlist →
         </button>
-        <p style="font-size:.76rem;color:var(--muted);text-align:center;margin-top:8px;">No spam. Only launch updates. 🙏</p>
+        <p style="font-size:.76rem;color:var(--muted);text-align:center;margin-top:8px;">
+          No spam. Only launch updates. 🙏
+        </p>
       </form>
 
       <div class="wl-success" id="wlSuccess">
         <div class="tick">🎉</div>
         <h3>You're on the list!</h3>
-        <p>We'll email you the moment something new drops.<br/>Thanks for supporting Test lele!</p>
+        <p>We'll email you when Test lele launches.<br/>
+          Thanks for supporting us!</p>
       </div>
     </div>
   </div>
