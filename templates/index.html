@@ -3,117 +3,137 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
-  <title>Test lele</title>
+  <title>Test lele — Practice Test Generator</title>
   <link rel="stylesheet" href="/static/styles.css"/>
   <style>
-    /* ── Mobile-first overrides ── */
     @media (max-width: 600px) {
-
-      .page {
-        padding: 12px 14px 80px;
-      }
-
-      /* Nav */
-      .nav {
-        padding: 10px 0 14px;
-        flex-wrap: nowrap;
-        gap: 8px;
-      }
+      .page { padding: 12px 14px 80px; }
+      .nav { padding: 10px 0 14px; flex-wrap: nowrap; gap: 8px; }
       .brandName { font-size: .95rem; }
-      .brandSub  { display: none; }
-      .navRight  { gap: 6px; }
-      .btn.ghost {
-        padding: 8px 10px;
-        font-size: .78rem;
-      }
-
-      /* Banner */
-      .mvp-banner {
-        font-size: .78rem;
-        padding: 8px 12px;
-        gap: 6px;
-      }
-
-      /* Hero */
+      .brandSub { display: none; }
+      .navRight { gap: 6px; }
+      .btn.ghost { padding: 8px 10px; font-size: .78rem; }
       .home-hero { padding: 20px 0 16px; }
-      .home-hero h1 {
-        font-size: 2rem;
-        letter-spacing: -1px;
-        margin-bottom: 10px;
-      }
+      .home-hero h1 { font-size: 1.9rem; letter-spacing: -1px; margin-bottom: 10px; }
       .home-hero p { font-size: .88rem; }
-
-      /* Feature tags — scroll horizontally */
-      .feat-tags {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        padding-bottom: 6px;
-        gap: 6px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-      }
+      .feat-tags { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; gap: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
       .feat-tags::-webkit-scrollbar { display: none; }
-      .feat-tag {
-        white-space: nowrap;
-        flex-shrink: 0;
-        font-size: .76rem;
-        padding: 4px 10px;
-      }
-
-      /* Card */
+      .feat-tag { white-space: nowrap; flex-shrink: 0; font-size: .76rem; padding: 4px 10px; }
       .card { padding: 18px 14px; }
       .card h2 { font-size: 1rem; margin-bottom: 14px; }
-
-      /* Form fields */
       .label { font-size: .75rem; }
-      .input, select, textarea {
-        font-size: 16px; /* prevents iOS zoom */
-        padding: 12px;
-        border-radius: 10px;
-      }
+      .input, select, textarea { font-size: 16px; padding: 12px; border-radius: 10px; }
       textarea { min-height: 80px; }
-
-      /* Row2 always single column on mobile */
       .row2 { grid-template-columns: 1fr !important; gap: 10px; }
-
-      /* File upload */
-      .file-upload {
-        padding: 12px;
-        font-size: .85rem;
-      }
-
-      /* Submit button */
-      .submit-btn {
-        padding: 15px !important;
-        font-size: 1rem !important;
-        border-radius: 12px !important;
-        position: sticky;
-        bottom: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,.2);
-      }
-
-      /* Banner bottom */
-      .mvp-bottom {
-        font-size: .76rem;
-        margin-top: 16px;
-        padding: 10px 12px;
-      }
-
-      /* Modal */
-      .wl-modal-card {
-        padding: 20px 16px;
-        max-height: 92vh;
-        overflow-y: auto;
-      }
-      .wl-modal-head h3 { font-size: 1.05rem; }
+      .file-upload { padding: 12px; font-size: .85rem; }
+      .wl-modal-card { padding: 20px 16px; max-height: 92vh; overflow-y: auto; }
+      .demo-topics { gap: 6px; }
+      .demo-chip { font-size: .78rem; padding: 6px 12px; }
+      .wl-section { padding: 20px 16px; }
+      .wl-section h2 { font-size: 1.2rem; }
     }
 
-    /* Sticky bottom submit */
+    /* Demo topics */
+    .demo-topics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .demo-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .demo-chip:hover {
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-color: var(--accent);
+    }
+    .demo-chip.active {
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-color: var(--accent);
+    }
+
+    /* Waitlist section */
+    .wl-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      margin-top: 16px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .wl-section .rocket { font-size: 2rem; margin-bottom: 10px; }
+    .wl-section h2 {
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: -.5px;
+      margin-bottom: 8px;
+    }
+    .wl-section p {
+      color: var(--muted);
+      font-size: .9rem;
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+    .wl-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .wl-feat {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: .8rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .wl-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: var(--accent-fg);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 13px 28px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: opacity .15s;
+      font-family: var(--font);
+    }
+    .wl-btn:hover { opacity: .88; }
+
+    /* Submit sticky */
     .submit-btn {
       width: 100%;
       justify-content: center;
       padding: 13px;
-      transition: all .2s;
+      font-size: .95rem;
+    }
+    @media (max-width: 600px) {
+      .submit-btn {
+        padding: 15px !important;
+        font-size: 1rem !important;
+        position: sticky;
+        bottom: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,.2);
+      }
     }
   </style>
 </head>
@@ -134,9 +154,10 @@
       </div>
     </header>
 
+    <!-- ① Better headline -->
     <div class="home-hero">
-      <h1>Test lele.</h1>
-      <p>Paste your notes → get a full exam with MCQ, written questions, timer & auto-scoring.</p>
+      <h1>Turn any topic into an instant practice test.</h1>
+      <p>Type a topic or paste your notes → get MCQ + written questions with timer, scoring and feedback. Free to try.</p>
       <div class="feat-tags">
         <span class="feat-tag">⏱ Timed exams</span>
         <span class="feat-tag">✏️ Written answers</span>
@@ -149,16 +170,31 @@
 
     <div class="card">
       <h2>Create a Test</h2>
-      <form class="form" action="/create" method="post" enctype="multipart/form-data">
+      <form class="form" id="mainForm" action="/create" method="post" enctype="multipart/form-data">
 
         <div class="field">
           <label class="label">Topic / Notes</label>
-          <textarea class="input" name="topic"
-            placeholder="e.g. Class 10 Science — Acids, Bases and Salts / Neet level question on Acids , Bases and Salts "></textarea>
-           <span class="hint">Keep it focused to one chapter for best results.</span>
-           <span class="hint">(The better the Promt, the better the Question are)</span>
+          <textarea class="input" name="topic" id="topicInput"
+            placeholder="e.g. JEE Physics – Current Electricity"></textarea>
+          <span class="hint">Keep it focused to one chapter for best results.</span>
+        </div>
 
-          <div class="field">
+        <!-- ② + ③ Example topics + Try Demo -->
+        <div>
+          <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
+            Try an example topic →
+          </div>
+          <div class="demo-topics">
+            <span class="demo-chip" data-topic="JEE Physics – Current Electricity">⚡ JEE Physics</span>
+            <span class="demo-chip" data-topic="NEET Biology – Cell Structure and Function">🧬 NEET Biology</span>
+            <span class="demo-chip" data-topic="Class 10 Science – Acids Bases and Salts">🧪 Class 10 Science</span>
+            <span class="demo-chip" data-topic="Python Programming – Loops and Functions">🐍 Python</span>
+            <span class="demo-chip" data-topic="Class 12 History – Nationalism in India">📚 Class 12 History</span>
+            <span class="demo-chip" data-topic="CAT Preparation – Quantitative Aptitude">📊 CAT Prep</span>
+          </div>
+        </div>
+
+        <div class="field">
           <label class="label">Upload PDF or Image (optional)</label>
           <label class="file-upload">
             <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg"/>
@@ -225,23 +261,44 @@
       </form>
     </div>
 
-    <!-- Honest banner — bottom -->
-    <div class="mvp-bottom" style="
+    <!-- ④ Waitlist section — prominent -->
+    <div class="wl-section">
+      <div class="rocket">🚀</div>
+      <h2>AI test generation coming soon</h2>
+      <p>Real PYQ-style questions powered by AI — for JEE, NEET, CBSE and more.<br/>
+      Join the waitlist to get early access before everyone else.</p>
+      <div class="wl-features">
+        <span class="wl-feat">🎯 PYQ-style questions</span>
+        <span class="wl-feat">🧠 AI-powered feedback</span>
+        <span class="wl-feat">📧 Test history on email</span>
+        <span class="wl-feat">👥 Share with friends</span>
+        <span class="wl-feat">🏆 Leaderboard</span>
+      </div>
+      <button class="wl-btn" id="waitlistBtn2">
+        🔔 Join the Waitlist — It's Free
+      </button>
+      <p style="font-size:.76rem;color:var(--muted);margin-top:12px;">
+        No spam. Only launch updates. 🙏
+      </p>
+    </div>
+
+    <!-- MVP banner -->
+    <div style="
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 10px 16px;
       font-size: .82rem;
       color: var(--muted);
-      margin-top: 20px;
+      margin-top: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
     ">
       🚧 <span><b>Early MVP</b> — Questions are template-based for now.
-      Real AI integration coming soon.
+      Real AI coming soon.
       <a href="#" onclick="document.getElementById('wlModal').style.display='grid'"
-         style="color:var(--text);font-weight:700;">Join the waitlist</a> to get notified.</span>
+        style="color:var(--text);font-weight:700;">Join waitlist →</a></span>
     </div>
 
   </main>
@@ -253,7 +310,7 @@
         <h3>🔔 Join the Waitlist</h3>
         <button class="wl-close" id="wlClose">✕</button>
       </div>
-      <p class="wl-sub">Be the first to know when Test lele launches. No spam, ever.</p>
+      <p class="wl-sub">Be the first to know when AI-powered Test lele launches. No spam, ever.</p>
 
       <form class="form" id="wlForm"
         action="https://formspree.io/f/maqpwqev" method="POST">
@@ -271,10 +328,12 @@
           <label class="label">What will you use it for?</label>
           <select class="input" name="use_case">
             <option value="">Select one…</option>
-            <option value="self_study">Self study / practice</option>
+            <option value="jee">JEE preparation</option>
+            <option value="neet">NEET preparation</option>
+            <option value="cbse">CBSE / board exams</option>
+            <option value="self_study">General self study</option>
             <option value="teacher">Teacher — making tests</option>
             <option value="coaching">Coaching / tuition centre</option>
-            <option value="college">College / university</option>
             <option value="other">Just curious</option>
           </select>
         </div>
@@ -283,7 +342,7 @@
             <span style="font-weight:400;text-transform:none;">(optional)</span>
           </label>
           <textarea class="input" name="feedback"
-            placeholder="What features do you want?"
+            placeholder="What features do you want? What's missing?"
             style="min-height:68px;"></textarea>
         </div>
         <input type="hidden" name="_subject" value="New Test lele waitlist signup!"/>
@@ -299,12 +358,32 @@
       <div class="wl-success" id="wlSuccess">
         <div class="tick">🎉</div>
         <h3>You're on the list!</h3>
-        <p>We'll email you when Test lele launches.<br/>
+        <p>We'll email you when Test lele launches AI features.<br/>
           Thanks for supporting us!</p>
       </div>
     </div>
   </div>
 
   <script src="/static/app.js"></script>
+  <script>
+    // Demo topic chips
+    document.querySelectorAll(".demo-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        const topic = chip.dataset.topic;
+        document.getElementById("topicInput").value = topic;
+        // highlight selected
+        document.querySelectorAll(".demo-chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        // scroll to form smoothly
+        document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
+        document.getElementById("topicInput").focus();
+      });
+    });
+
+    // Second waitlist button
+    document.getElementById("waitlistBtn2")?.addEventListener("click", () => {
+      document.getElementById("wlModal").style.display = "grid";
+    });
+  </script>
 </body>
 </html>
