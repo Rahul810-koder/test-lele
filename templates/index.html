@@ -135,6 +135,48 @@
         box-shadow: 0 4px 20px rgba(0,0,0,.2);
       }
     }
+    /* Preset buttons */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: var(--font);
+  text-align: left;
+  width: 100%;
+}
+.preset-btn:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.preset-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.preset-btn.active .preset-meta {
+  color: var(--accent-fg);
+  opacity: .8;
+}
+.preset-icon { font-size: 1.3rem; }
+.preset-name { font-size: .9rem; font-weight: 800; }
+.preset-meta { font-size: .72rem; color: var(--muted); font-weight: 600; }
+
+@media (max-width: 400px) {
+  .preset-grid { grid-template-columns: repeat(2, 1fr); }
+  .preset-name { font-size: .82rem; }
+}
   </style>
 </head>
 <body>
@@ -193,6 +235,34 @@
             <span class="demo-chip" data-topic="CAT Preparation – Quantitative Aptitude">📊 CAT Prep</span>
           </div>
         </div>
+        <!-- Exam Format Presets -->
+<div class="field">
+  <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
+    Quick format presets →
+  </div>
+  <div class="preset-grid">
+    <button type="button" class="preset-btn" data-preset="neet">
+      <span class="preset-icon">🧬</span>
+      <span class="preset-name">NEET</span>
+      <span class="preset-meta">180Q · 3hrs · Mixed</span>
+    </button>
+    <button type="button" class="preset-btn" data-preset="jee">
+      <span class="preset-icon">⚡</span>
+      <span class="preset-name">JEE Main</span>
+      <span class="preset-meta">75Q · 3hrs · Mixed</span>
+    </button>
+    <button type="button" class="preset-btn" data-preset="cbse">
+      <span class="preset-icon">📝</span>
+      <span class="preset-name">CBSE Board</span>
+      <span class="preset-meta">30Q · 2hrs · Both</span>
+    </button>
+    <button type="button" class="preset-btn" data-preset="quick">
+      <span class="preset-icon">⚡</span>
+      <span class="preset-name">Quick Test</span>
+      <span class="preset-meta">10Q · 15min · MCQ</span>
+    </button>
+  </div>
+</div>
 
         <div class="field">
           <label class="label">Upload PDF or Image (optional)</label>
@@ -384,6 +454,331 @@
     document.getElementById("waitlistBtn2")?.addEventListener("click", () => {
       document.getElementById("wlModal").style.display = "grid";
     });
+    // Exam format presets
+const presets = {
+  neet: {
+    topic: "NEET Biology – Cell Structure and Function",
+    num_questions: 45,
+    timer_minutes: 60,
+    difficulty: "mixed",
+    question_type: "mcq",
+    exam_mode: "exam"
+  },
+  jee: {
+    topic: "JEE Physics – Current Electricity",
+    num_questions: 25,
+    timer_minutes: 60,
+    difficulty: "hard",
+    question_type: "mcq",
+    exam_mode: "exam"
+  },
+  cbse: {
+    topic: "Class 10 Science – Acids Bases and Salts",
+    num_questions: 30,
+    timer_minutes: 120,
+    difficulty: "medium",
+    question_type: "both",
+    exam_mode: "practice"
+  },
+  quick: {
+    topic: "",
+    num_questions: 10,
+    timer_minutes: 15,
+    difficulty: "easy",
+    question_type: "mcq",
+    exam_mode: "practice"
+  }
+};
+
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const key = btn.dataset.preset;
+    const p = presets[key];
+
+    // Fill form fields
+    if (p.topic) {
+      document.getElementById("topicInput").value = p.topic;
+    }
+    document.querySelector("[name=num_questions]").value = p.num_questions;
+    document.querySelector("[name=timer_minutes]").value = p.timer_minutes;
+    document.querySelector("[name=difficulty]").value = p.difficulty;
+    document.querySelector("[name=question_type]").value = p.question_type;
+    document.querySelector("[name=exam_mode]").value = p.exam_mode;
+
+    // Highlight active preset
+    document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    // Scroll to topic box
+    document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!p.topic) document.getElementById("topicInput").focus();
+  });
+});
   </script>
+  <!-- TeLe Welcome Bot -->
+<div id="teleBot" style="display:none;">
+  <style>
+    .tele-bot {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: min(320px, calc(100vw - 32px));
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.18);
+      padding: 20px 18px 16px;
+      z-index: 1000;
+      animation: botSlideUp .4s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes botSlideUp {
+      from { opacity: 0; transform: translateY(30px) scale(.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .tele-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .tele-avatar {
+      width: 42px;
+      height: 42px;
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      animation: botPulse 2s infinite;
+    }
+    @keyframes botPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),.4); }
+      50%      { box-shadow: 0 0 0 8px rgba(var(--accent-rgb),0); }
+    }
+    .tele-name {
+      font-weight: 900;
+      font-size: .95rem;
+      letter-spacing: -.3px;
+    }
+    .tele-tag {
+      font-size: .72rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .tele-close {
+      margin-left: auto;
+      background: var(--surface2);
+      border: none;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: .9rem;
+      flex-shrink: 0;
+    }
+    .tele-close:hover { color: var(--text); }
+    .tele-bubble {
+      background: var(--surface2);
+      border-radius: 4px 14px 14px 14px;
+      padding: 12px 14px;
+      font-size: .88rem;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .tele-bubble b { color: var(--accent); }
+    .tele-typing {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-radius: 4px 14px 14px 14px;
+      margin-bottom: 14px;
+      width: fit-content;
+    }
+    .tele-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: typingDot 1.2s infinite;
+    }
+    .tele-dot:nth-child(2) { animation-delay: .2s; }
+    .tele-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes typingDot {
+      0%,60%,100% { transform: translateY(0); opacity:.4; }
+      30%          { transform: translateY(-5px); opacity:1; }
+    }
+    .tele-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .tele-btn-primary {
+      flex: 1;
+      background: var(--accent);
+      color: var(--accent-fg);
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: .84rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: opacity .15s;
+    }
+    .tele-btn-primary:hover { opacity: .85; }
+    .tele-btn-ghost {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: .84rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .tele-btn-ghost:hover { color: var(--text); }
+
+    /* Minimized bubble */
+    .tele-bubble-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 52px;
+      height: 52px;
+      background: var(--accent);
+      color: var(--accent-fg);
+      border: none;
+      border-radius: 50%;
+      font-size: 1.4rem;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,.2);
+      z-index: 999;
+      animation: botSlideUp .3s ease;
+      transition: transform .15s;
+    }
+    .tele-bubble-btn:hover { transform: scale(1.1); }
+  </style>
+
+  <!-- Bot card -->
+  <div class="tele-bot" id="teleBotCard">
+    <div class="tele-head">
+      <div class="tele-avatar">🤖</div>
+      <div>
+        <div class="tele-name">TeLe</div>
+        <div class="tele-tag">Test lele AI Assistant</div>
+      </div>
+      <button class="tele-close" id="teleDismiss">✕</button>
+    </div>
+
+    <!-- Typing animation shows first -->
+    <div class="tele-typing" id="teleTyping">
+      <div class="tele-dot"></div>
+      <div class="tele-dot"></div>
+      <div class="tele-dot"></div>
+    </div>
+
+    <!-- Message shows after delay -->
+    <div class="tele-bubble" id="teleBubble" style="display:none;">
+      👋 Hi! I'm <b>TeLe</b> — your AI test assistant!<br/><br/>
+      I can turn <b>any topic</b> into a full practice test with MCQ, written questions, timer and instant scoring.<br/><br/>
+      Try me — it takes <b>under 10 seconds!</b> 🚀
+    </div>
+
+    <div class="tele-actions" id="teleActions" style="display:none;">
+      <button class="tele-btn-primary" id="teleTryDemo">⚡ Try Demo Test</button>
+      <button class="tele-btn-ghost" id="teleGotIt">Got it ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Minimized TeLe button (shows after dismiss) -->
+<button class="tele-bubble-btn" id="teleMini" style="display:none;" title="Chat with TeLe">
+  🤖
+</button>
+
+<script>
+  (function() {
+    const SEEN_KEY = "tele_welcomed";
+    const bot      = document.getElementById("teleBot");
+    const card     = document.getElementById("teleBotCard");
+    const typing   = document.getElementById("teleTyping");
+    const bubble   = document.getElementById("teleBubble");
+    const actions  = document.getElementById("teleActions");
+    const mini     = document.getElementById("teleMini");
+    const dismiss  = document.getElementById("teleDismiss");
+    const tryDemo  = document.getElementById("teleTryDemo");
+    const gotIt    = document.getElementById("teleGotIt");
+
+    // Only show once per browser
+    if (localStorage.getItem(SEEN_KEY)) {
+      // show mini button instead
+      mini.style.display = "grid";
+      return;
+    }
+
+    // Show bot after 1.5s delay
+    setTimeout(() => {
+      bot.style.display = "block";
+
+      // After 1.5s typing animation → show message
+      setTimeout(() => {
+        typing.style.display = "none";
+        bubble.style.display = "block";
+        actions.style.display = "flex";
+      }, 1500);
+    }, 1500);
+
+    // Dismiss → show mini button
+    function dismissBot() {
+      card.style.animation = "none";
+      card.style.opacity = "0";
+      card.style.transform = "translateY(20px)";
+      card.style.transition = "all .25s";
+      setTimeout(() => {
+        bot.style.display = "none";
+        mini.style.display = "grid";
+        localStorage.setItem(SEEN_KEY, "1");
+      }, 250);
+    }
+
+    dismiss.addEventListener("click", dismissBot);
+    gotIt.addEventListener("click", dismissBot);
+
+    // Try demo → fill JEE preset and scroll to form
+    tryDemo.addEventListener("click", () => {
+      document.getElementById("topicInput").value = "JEE Physics – Current Electricity";
+      document.querySelector("[name=num_questions]").value = 10;
+      document.querySelector("[name=timer_minutes]").value = 15;
+      document.querySelector("[name=difficulty]").value = "medium";
+      document.querySelector("[name=question_type]").value = "mcq";
+      document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
+      dismissBot();
+    });
+
+    // Mini button → show bot again
+    mini.addEventListener("click", () => {
+      mini.style.display = "none";
+      bot.style.display = "block";
+      typing.style.display = "none";
+      bubble.style.display = "block";
+      actions.style.display = "flex";
+      card.style.opacity = "1";
+      card.style.transform = "none";
+    });
+  })();
+</script>
 </body>
 </html>

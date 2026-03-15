@@ -6,6 +6,13 @@ let EXAM = null;
 let LOCKED = false;
 let TIMER_ID = null;
 let TIME_OVER_AUTO = false;
+let SLIDE_MODE = false;
+let SLIDE_CURRENT = 1;
+
+// Track time per question
+let Q_START_TIMES = {};   // { qid: timestamp when first interacted }
+let Q_TIME_SPENT = {};    // { qid: seconds spent }
+let EXAM_START_TIME = null;
 
 // -- Theme --
 function applyTheme(t) {
@@ -38,11 +45,8 @@ function startTimer(seconds) {
   TIMER_ID = setInterval(async () => {
     left--;
     const pill = $("timerPill");
-
-    // Color warning
     if (left <= 60) pill.className = "pill danger";
     else if (left <= 120) pill.className = "pill warn";
-
     if (left <= 0) {
       stopTimer();
       pill.textContent = "⏱ 00:00";
@@ -64,7 +68,6 @@ function setLocked(on) {
       el.disabled = on;
     }
   });
-  // Also lock photo areas visually
   document.querySelectorAll(".q-card").forEach(card => {
     if (on) card.classList.add("locked");
     else card.classList.remove("locked");
@@ -101,6 +104,32 @@ function updateProgress() {
   $("progressPill").textContent = `${answered} / ${EXAM.questions.length} answered`;
 }
 
+// -- Track time per question --
+function recordQuestionFocus(qid) {
+  if (LOCKED) return;
+  Q_START_TIMES[qid] = Q_START_TIMES[qid] || Date.now();
+}
+
+function recordQuestionBlur(qid) {
+  if (!Q_START_TIMES[qid]) return;
+  const spent = Math.round((Date.now() - Q_START_TIMES[qid]) / 1000);
+  Q_TIME_SPENT[qid] = (Q_TIME_SPENT[qid] || 0) + spent;
+  Q_START_TIMES[qid] = null;
+}
+
+function finalizeAllTimes() {
+  // flush any still-focused questions
+  Object.keys(Q_START_TIMES).forEach(qid => {
+    if (Q_START_TIMES[qid]) recordQuestionBlur(qid);
+  });
+}
+
+function fmtSpent(sec) {
+  if (!sec || sec < 1) return "< 1s";
+  if (sec < 60) return `${sec}s`;
+  return `${Math.floor(sec/60)}m ${sec%60}s`;
+}
+
 // -- Collect answers --
 function collectAnswers() {
   const answers = {};
@@ -116,11 +145,100 @@ function collectAnswers() {
   });
   return answers;
 }
+// -- Slide Mode --
+function initSlideMode() {
+  const paper = $("paper");
+  const btn = $("slideModeBtn");
+  if (!paper || !btn) return;
+
+  // Insert progress bar and nav into DOM
+  const progressBar = document.createElement("div");
+  progressBar.className = "slide-progress-bar";
+  progressBar.id = "slideProgressBar";
+  progressBar.innerHTML = `<div class="slide-progress-fill" id="slideProgressFill"></div>`;
+  paper.parentNode.insertBefore(progressBar, paper);
+
+  const nav = document.createElement("div");
+  nav.className = "slide-nav";
+  nav.id = "slideNav";
+  nav.innerHTML = `
+    <button class="slide-btn" id="slidePrev">← Prev</button>
+    <span class="slide-counter" id="slideCounter">1 / 1</span>
+    <button class="slide-btn" id="slideNext">Next →</button>
+  `;
+  paper.parentNode.insertBefore(nav, paper.nextSibling);
+
+  $("slidePrev").addEventListener("click", () => goSlide(SLIDE_CURRENT - 1));
+  $("slideNext").addEventListener("click", () => goSlide(SLIDE_CURRENT + 1));
+
+  btn.addEventListener("click", () => {
+    SLIDE_MODE = !SLIDE_MODE;
+    if (SLIDE_MODE) {
+      paper.classList.add("slide-mode");
+      btn.classList.add("slide-mode-active-btn");
+      btn.textContent = "☰ Scroll";
+      goSlide(1);
+    } else {
+      paper.classList.remove("slide-mode");
+      btn.classList.remove("slide-mode-active-btn");
+      btn.textContent = "▦ Slide";
+      // Show all cards again
+      document.querySelectorAll(".q-card").forEach(c => {
+        c.classList.remove("slide-active");
+      });
+    }
+  });
+}
+
+function goSlide(n) {
+  if (!EXAM) return;
+  const total = EXAM.questions.length;
+  SLIDE_CURRENT = Math.max(1, Math.min(n, total));
+
+  // Track time
+  trackQuestionFocus(String(SLIDE_CURRENT));
+
+  // Show only current card
+  document.querySelectorAll(".q-card").forEach((card, i) => {
+    card.classList.toggle("slide-active", i + 1 === SLIDE_CURRENT);
+  });
+
+  // Update counter
+  const counter = $("slideCounter");
+  if (counter) counter.textContent = `${SLIDE_CURRENT} / ${total}`;
+
+  // Update progress bar
+  const fill = $("slideProgressFill");
+  if (fill) fill.style.width = `${(SLIDE_CURRENT / total) * 100}%`;
+
+  // Update prev/next buttons
+  const prev = $("slidePrev");
+  const next = $("slideNext");
+  if (prev) prev.disabled = SLIDE_CURRENT === 1;
+  if (next) {
+    if (SLIDE_CURRENT === total) {
+      next.innerHTML = "Submit ✓";
+      next.style.background = "var(--accent)";
+      next.style.color = "var(--accent-fg)";
+      next.style.borderColor = "var(--accent)";
+      next.onclick = () => {
+        if (!LOCKED) submitExam(false);
+      };
+    } else {
+      next.innerHTML = "Next →";
+      next.style.background = "";
+      next.style.color = "";
+      next.style.borderColor = "";
+      next.onclick = () => goSlide(SLIDE_CURRENT + 1);
+    }
+  }
+}
 
 // -- Render --
 function renderExam(exam) {
   EXAM = exam;
-  window._photos = {}; // photo store: { qid: [dataURL, ...] }
+  window._photos = {};
+  EXAM_START_TIME = Date.now();
 
   $("paperTitle").textContent = exam.title || "Test Paper";
   const meta = exam.meta || {};
@@ -140,7 +258,6 @@ function renderExam(exam) {
     const idx = i + 1;
     const qid = String(idx);
 
-    // Detect difficulty from question text
     const diffMatch = q.q.match(/\[(EASY|MEDIUM|HARD)\]/i);
     const diff = diffMatch ? diffMatch[1].toLowerCase() : "medium";
     const cleanQ = q.q.replace(/\[(EASY|MEDIUM|HARD)\]\s*/i, "").trim();
@@ -148,6 +265,12 @@ function renderExam(exam) {
     const card = document.createElement("div");
     card.className = "q-card";
     card.dataset.qid = qid;
+
+    // Track time when card is clicked/focused
+    card.addEventListener("mouseenter", () => recordQuestionFocus(qid));
+    card.addEventListener("mouseleave", () => recordQuestionBlur(qid));
+    card.addEventListener("focusin",    () => recordQuestionFocus(qid));
+    card.addEventListener("focusout",   () => recordQuestionBlur(qid));
 
     card.innerHTML = `
       <div class="q-head">
@@ -187,7 +310,6 @@ function renderExam(exam) {
       }
 
     } else {
-      // Written answer: type or photo tabs
       const tabs = document.createElement("div");
       tabs.className = "answer-tabs";
       tabs.innerHTML = `
@@ -196,7 +318,6 @@ function renderExam(exam) {
       `;
       card.appendChild(tabs);
 
-      // Type panel
       const typePanel = document.createElement("div");
       typePanel.dataset.panel = "type";
       const ta = document.createElement("textarea");
@@ -207,7 +328,6 @@ function renderExam(exam) {
       typePanel.appendChild(ta);
       card.appendChild(typePanel);
 
-      // Photo panel
       const photoPanel = document.createElement("div");
       photoPanel.dataset.panel = "photo";
       photoPanel.style.display = "none";
@@ -224,7 +344,6 @@ function renderExam(exam) {
       `;
       card.appendChild(photoPanel);
 
-      // Tab switching
       tabs.querySelectorAll(".answer-tab").forEach(tab => {
         tab.addEventListener("click", () => {
           tabs.querySelectorAll(".answer-tab").forEach(t => t.classList.remove("active"));
@@ -235,7 +354,6 @@ function renderExam(exam) {
         });
       });
 
-      // Photo input handler
       photoPanel.querySelector(`#photoInput_${qid}`).addEventListener("change", (e) => {
         const files = Array.from(e.target.files);
         if (!window._photos[qid]) window._photos[qid] = [];
@@ -248,7 +366,7 @@ function renderExam(exam) {
           };
           reader.readAsDataURL(file);
         });
-        e.target.value = ""; // reset so same file can be re-added
+        e.target.value = "";
       });
 
       if (meta.mode === "practice" && meta.include_answers) {
@@ -270,12 +388,13 @@ function renderExam(exam) {
     wrap.appendChild(card);
   });
 
-  // Start timer
   const tmin = Number(meta.timer_minutes || 0);
   if (tmin > 0) startTimer(tmin * 60);
 
   document.addEventListener("change", updateProgress);
   updateProgress();
+  // Init slide mode after questions are rendered
+  initSlideMode();
 }
 
 function renderPhotoPreview(qid) {
@@ -305,7 +424,8 @@ async function submitExam(time_over = false) {
   if (!EXAM) return;
   if (LOCKED && !time_over) return;
 
-  stopTimer(); // ⭐ Timer stops on submit
+  finalizeAllTimes(); // ⭐ lock in all question times
+  stopTimer();
   setLocked(true);
 
   const status = $("submitStatus");
@@ -333,13 +453,86 @@ async function submitExam(time_over = false) {
   }
 }
 
+// -- Share --
+function buildShareText(res) {
+  const topic = EXAM?.title || "a topic";
+  const pct = res.percentage;
+  const grade = res.grade;
+  return `I just scored ${pct}% (${grade}) on a "${topic}" practice test on Test lele! 🎯\nTry it free → https://test-lele-production.up.railway.app`;
+}
+
+function showShareButtons(res) {
+  const text = encodeURIComponent(buildShareText(res));
+  const wa  = `https://wa.me/?text=${text}`;
+  const tw  = `https://twitter.com/intent/tweet?text=${text}`;
+
+  const div = document.createElement("div");
+  div.className = "share-row";
+  div.innerHTML = `
+    <div class="share-label">📤 Share your result</div>
+    <div class="share-btns">
+      <a class="share-btn whatsapp" href="${wa}" target="_blank" rel="noopener">
+        <span>💬</span> WhatsApp
+      </a>
+      <a class="share-btn twitter" href="${tw}" target="_blank" rel="noopener">
+        <span>🐦</span> Twitter/X
+      </a>
+      <button class="share-btn copy" id="copyShareBtn">
+        <span>📋</span> Copy Link
+      </button>
+    </div>
+  `;
+  return div;
+}
+
+// -- Time per question table --
+function buildTimeTable() {
+  if (!EXAM) return null;
+  const totalSec = Math.round((Date.now() - EXAM_START_TIME) / 1000);
+
+  const rows = EXAM.questions.map((q, i) => {
+    const qid = String(i + 1);
+    const sec = Q_TIME_SPENT[qid] || 0;
+    const pct = totalSec > 0 ? Math.round((sec / totalSec) * 100) : 0;
+    const bar = `<div class="time-bar-wrap"><div class="time-bar" style="width:${Math.min(pct,100)}%"></div></div>`;
+    return `
+      <tr>
+        <td class="tc-q">Q${qid}</td>
+        <td class="tc-type">${q.type.toUpperCase()}</td>
+        <td class="tc-time">${fmtSpent(sec)}</td>
+        <td class="tc-bar">${bar}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const div = document.createElement("div");
+  div.className = "time-table-wrap";
+  div.innerHTML = `
+    <div class="result-section">
+      <h3>⏱ Time Spent per Question</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;">
+        Total exam time: <b>${fmtSpent(totalSec)}</b>
+      </p>
+      <table class="time-table">
+        <thead>
+          <tr>
+            <th>Q#</th><th>Type</th><th>Time</th><th>Proportion</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+  return div;
+}
+
 function showResult(res) {
   const box = $("result");
   box.style.display = "block";
   box.className = "result-card";
 
   const miss = (res.missing_points || []).map(x => `<li>${x}</li>`).join("");
-  const rev = (res.suggested_revision || []).map(x => `<li>${x}</li>`).join("");
+  const rev  = (res.suggested_revision || []).map(x => `<li>${x}</li>`).join("");
 
   box.innerHTML = `
     <div class="result-score">${res.percentage}%</div>
@@ -356,7 +549,25 @@ function showResult(res) {
     </div>
   `;
 
-  // Show answer keys on each card
+  // ⭐ Time per question table
+  const timeTable = buildTimeTable();
+  if (timeTable) box.appendChild(timeTable);
+
+  // ⭐ Share buttons
+  const shareDiv = showShareButtons(res);
+  box.appendChild(shareDiv);
+
+  // Copy link button
+  box.querySelector("#copyShareBtn")?.addEventListener("click", () => {
+    const txt = buildShareText(res);
+    navigator.clipboard.writeText(txt).then(() => {
+      const btn = box.querySelector("#copyShareBtn");
+      btn.innerHTML = "<span>✅</span> Copied!";
+      setTimeout(() => btn.innerHTML = "<span>📋</span> Copy Link", 2000);
+    });
+  });
+
+  // Show answer keys
   if (res.answer_key) {
     Object.keys(res.answer_key).forEach(qid => {
       const key = res.answer_key[qid];
@@ -377,12 +588,12 @@ function showResult(res) {
 
   box.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  // Show waitlist popup 8 seconds after results appear
+  // Waitlist popup after 4s
   setTimeout(() => {
     const modal = document.getElementById("wlModal");
     if (modal && !sessionStorage.getItem("wl_shown")) {
       modal.style.display = "grid";
-      sessionStorage.setItem("wl_shown", "1"); // only show once per session
+      sessionStorage.setItem("wl_shown", "1");
     }
   }, 4000);
 }
@@ -403,17 +614,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyTheme(localStorage.getItem("theme") || "light");
   $("themeBtn")?.addEventListener("click", toggleTheme);
   $("printBtn")?.addEventListener("click", () => window.print());
-
   $("timeOverOk")?.addEventListener("click", () => {
     $("timeOverModal").style.display = "none";
   });
-
   $("submitBtn")?.addEventListener("click", async () => {
     if (TIME_OVER_AUTO || LOCKED) return;
-    stopTimer();       // ⭐ Timer stops immediately on manual submit
+    stopTimer();
     await submitExam(false);
   });
-
   if (!examId) {
     $("submitStatus").textContent = "Error: missing exam ID in URL.";
     return;
