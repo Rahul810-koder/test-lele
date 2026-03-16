@@ -251,9 +251,12 @@ def score_written(user_text: str, key_points: List[str]) -> float:
 # ---------------------------
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "app_name": APP_NAME})
+def welcome_page(request: Request):
+    return templates.TemplateResponse("welcome.html", {"request": request})
 
+@app.get("/create", response_class=HTMLResponse)
+def create_page(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/create")
 async def create_test(

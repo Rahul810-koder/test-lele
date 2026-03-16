@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Test lele — India's Self-Test Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --card: #1a1a26;
+      --accent: #ff5c28;
+      --accent2: #ffb800;
+      --accent3: #00e5a0;
+      --text: #f0eff5;
+      --muted: #7a7a9a;
+      --border: rgba(255,255,255,0.07);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-mark {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: .85rem;
+      color: #fff;
+    }
+
+    .nav-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 22px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: .88rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity .15s;
+    }
+
+    .nav-cta:hover { opacity: .85; }
+
+    /* HERO */
+    .hero {
+      padding: 70px 0 60px;
+      text-align: center;
+      position: relative;
+      animation: fadeUp .7s ease both;
+    }
+
+    .glow {
+      position: absolute;
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(255,92,40,0.13) 0%, transparent 70%);
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,92,40,0.12);
+      border: 1px solid rgba(255,92,40,0.25);
+      color: var(--accent);
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 32px;
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(38px, 7vw, 78px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 .accent { color: var(--accent); }
+    .hero h1 .accent2 { color: var(--accent2); }
+
+    .hero-sub {
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 300;
+      max-width: 540px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 16px 32px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .2s;
+      box-shadow: 0 8px 30px rgba(255,92,40,0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(255,92,40,0.4);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 32px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.04);
+    }
+
+    /* STATS BAR */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      padding: 24px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 80px;
+      animation: fadeUp .7s .15s ease both;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* HOW IT WORKS */
+    .section { margin-bottom: 90px; animation: fadeUp .7s .2s ease both; }
+
+    .section-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 300;
+      margin-bottom: 48px;
+      max-width: 500px;
+    }
+
+    /* Steps */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .step-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+      transition: transform .25s, border-color .25s;
+    }
+
+    .step-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,92,40,0.3);
+    }
+
+    .step-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transition: transform .3s ease;
+    }
+
+    .step-card:hover::before { transform: scaleX(1); }
+
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: rgba(255,92,40,0.15);
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+
+    .step-icon { font-size: 1.8rem; margin-bottom: 12px; display: block; }
+
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .step-desc {
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* PHOTO UPLOAD FEATURE HIGHLIGHT */
+    .feature-highlight {
+      background: linear-gradient(135deg, rgba(255,92,40,0.08), rgba(255,184,0,0.05));
+      border: 1px solid rgba(255,92,40,0.2);
+      border-radius: 24px;
+      padding: 48px;
+      margin-bottom: 90px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      animation: fadeUp .7s .25s ease both;
+    }
+
+    .feature-highlight h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+    .feature-highlight p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+      font-weight: 300;
+      margin-bottom: 24px;
+    }
+
+    .feature-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feature-bullets li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: .88rem;
+      color: var(--text);
+    }
+
+    .feature-bullets li::before {
+      content: '✦';
+      color: var(--accent);
+      font-size: .8rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Phone mockup */
+    .phone-mockup {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .phone-screen {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .mock-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .mock-step-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(255,92,40,0.15);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .mock-step-text {
+      font-size: .8rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .mock-step-sub {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .mock-arrow {
+      text-align: center;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+
+    /* EXAM TYPES */
+    .exam-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 90px;
+      animation: fadeUp .7s .3s ease both;
+    }
+
+    .exam-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none;
+    }
+
+    .exam-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,92,40,0.3);
+      background: rgba(255,92,40,0.05);
+    }
+
+    .exam-card-icon { font-size: 2.2rem; margin-bottom: 12px; display: block; }
+
+    .exam-card-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .exam-card-desc {
+      font-size: .78rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .exam-card-tag {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 3px 10px;
+      background: rgba(0,229,160,0.1);
+      color: var(--accent3);
+      border-radius: 100px;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+
+    /* SCENARIO — same as before */
+    .scenario-box {
+      background: linear-gradient(135deg, rgba(255,92,40,0.08), rgba(255,184,0,0.05));
+      border: 1px solid rgba(255,92,40,0.2);
+      border-radius: 24px;
+      padding: 48px;
+      margin-bottom: 90px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp .7s .35s ease both;
+    }
+
+    .scenario-box::after {
+      content: '📖';
+      position: absolute;
+      right: 40px;
+      top: 40px;
+      font-size: 64px;
+      opacity: 0.12;
+    }
+
+    .scenario-box h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(20px, 3vw, 28px);
+      font-weight: 800;
+      margin-bottom: 28px;
+      letter-spacing: -0.5px;
+    }
+
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 20px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: start;
+    }
+
+    .timeline-item:last-child { border-bottom: none; }
+
+    .timeline-time {
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      padding-top: 2px;
+    }
+
+    .timeline-content strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 3px;
+      color: #fff;
+    }
+
+    .timeline-content span {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .tl-tag {
+      display: inline-block;
+      background: rgba(255,92,40,0.15);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 100px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* FINAL CTA */
+    .final-cta {
+      text-align: center;
+      padding: 60px 0 80px;
+      border-top: 1px solid var(--border);
+      animation: fadeUp .7s .4s ease both;
+    }
+
+    .final-cta h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .final-cta p {
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 300;
+      margin-bottom: 36px;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile */
+    @media (max-width: 700px) {
+      .feature-highlight {
+        grid-template-columns: 1fr;
+        padding: 28px 20px;
+        gap: 24px;
+      }
+      .scenario-box { padding: 28px 20px; }
+      .scenario-box::after { display: none; }
+      .timeline-item { grid-template-columns: 70px 1fr; gap: 12px; }
+      .stats-bar { gap: 24px; }
+      .hero h1 { letter-spacing: -1px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HONEST MVP BANNER -->
+  <div style="
+    background: rgba(255,184,0,0.08);
+    border: 1px solid rgba(255,184,0,0.25);
+    border-radius: 12px;
+    padding: 12px 20px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: .85rem;
+    color: var(--accent2);
+    line-height: 1.5;
+  ">
+    <span style="font-size:1.2rem;flex-shrink:0;">⚠️</span>
+    <span>
+      <b>Honest disclaimer:</b> This is an early MVP prototype made by a solo developer. 
+      Questions are template-based — <b>no real AI yet.</b> 
+      If you find it useful and want the real AI version, 
+      <a href="#" onclick="document.getElementById('wlModal')?.style && (document.getElementById('wlModal').style.display='grid')" 
+         style="color:var(--accent2);font-weight:700;">join the waitlist</a> 
+      so we know there's real demand.
+    </span>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-brand" href="#">
+      <div class="nav-mark">TL</div>
+      <div class="nav-name">Test lele</div>
+    </a>
+    <a class="nav-cta" href="/create">Try Prototype →</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="glow"></div>
+    <div class="hero-badge">🚧 Early Prototype · Not the final product</div>
+    <h1>
+      Stop reading.<br>
+      Start <span class="accent">testing</span><br>
+      <span class="accent2">yourself.</span>
+    </h1>
+    <p class="hero-sub">
+      Finished a chapter? Test lele turns any topic into a practice exam with timer, scoring and feedback. <b style="color:var(--text)">This is an early prototype</b> — questions are template-based, not AI yet. Try it and tell us what you think.
+    </p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="/create">
+        ⚡ Try the Prototype
+      </a>
+      <a class="btn-secondary" href="#how-it-works">
+        See how it works ↓
+      </a>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-num">🚧</div>
+      <div class="stat-label">Early prototype</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">₹0</div>
+      <div class="stat-label">Free to try</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">JEE</div>
+      <div class="stat-label">NEET · CBSE presets</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">🤖</div>
+      <div class="stat-label">AI coming soon</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how-it-works">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">3 steps to a full exam</h2>
+    <p class="section-sub">No signup, no setup. Just pick your exam and start.</p>
+
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <span class="step-icon">📚</span>
+        <div class="step-title">Finish a chapter or topic</div>
+        <div class="step-desc">Just done with Organic Chemistry or Current Electricity? Don't just close the book. Test yourself while it's fresh.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <span class="step-icon">⚡</span>
+        <div class="step-title">Pick exam · topic · difficulty</div>
+        <div class="step-desc">Choose NEET, JEE or CBSE preset. Or type any topic. Set difficulty and number of questions. Hit Generate.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <span class="step-icon">📷</span>
+        <div class="step-title">Or just click a photo</div>
+        <div class="step-desc">Wrote notes in a notebook? Click a photo → upload it → Test lele reads your notes and generates a test from them.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <span class="step-icon">🎯</span>
+        <div class="step-title">Get instant feedback</div>
+        <div class="step-desc">Submit → see your score, grade, time per question, missed concepts, and suggested revision topics. All in one click.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHOTO UPLOAD HIGHLIGHT -->
+  <div class="feature-highlight">
+    <div>
+      <div class="section-label">Coming in the real version</div>
+      <h2>Test from your<br/>own handwritten notes 📷</h2>
+      <p>This is the vision — and we're building towards it. Right now you can upload a photo or PDF, and the prototype generates template-based questions. <b style="color:var(--text)">Real AI reading of your handwriting is coming once we validate there's demand.</b></p>
+      <ul class="feature-bullets">
+        <li>Click a photo of any page from your notes</li>
+        <li>Upload it on the create test page</li>
+        <li><b style="color:var(--accent)">Currently:</b> template questions based on topic</li>
+        <li><b style="color:var(--accent3)">Coming soon:</b> AI reads your notes and generates personalised questions</li>
+        <li>Help us build this — try it and give feedback!</li>
+      </ul>
+    </div>
+    <div class="phone-mockup">
+      <div class="phone-screen">
+        <div class="mock-step">
+          <div class="mock-step-icon">📷</div>
+          <div>
+            <div class="mock-step-text">notes_chemistry.jpg</div>
+            <div class="mock-step-sub">Uploaded · 2.1 MB</div>
+          </div>
+        </div>
+        <div class="mock-arrow">↓ analyzing your notes…</div>
+        <div class="mock-step">
+          <div class="mock-step-icon">⚡</div>
+          <div>
+            <div class="mock-step-text">10 questions generated</div>
+            <div class="mock-step-sub">From your uploaded notes</div>
+          </div>
+        </div>
+        <div class="mock-arrow">↓ test ready in 8 seconds</div>
+        <div class="mock-step">
+          <div class="mock-step-icon">🎯</div>
+          <div>
+            <div class="mock-step-text">Score: 85% · Grade A</div>
+            <div class="mock-step-sub">2 weak areas found</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXAM TYPES -->
+  <section class="section">
+    <div class="section-label">Exam presets</div>
+    <h2 class="section-title">Built for your exam</h2>
+    <p class="section-sub">One click presets that set the right format automatically.</p>
+  </section>
+
+  <div class="exam-grid">
+    <a class="exam-card" href="/create">
+      <span class="exam-card-icon">🧬</span>
+      <div class="exam-card-name">NEET</div>
+      <div class="exam-card-desc">Biology, Physics, Chemistry. PYQ-style MCQs with timer.</div>
+      <span class="exam-card-tag">MCQ · 45Q · 60min</span>
+    </a>
+    <a class="exam-card" href="/create">
+      <span class="exam-card-icon">⚡</span>
+      <div class="exam-card-name">JEE Main</div>
+      <div class="exam-card-desc">Maths, Physics, Chemistry. Challenging level questions.</div>
+      <span class="exam-card-tag">MCQ · 25Q · 60min</span>
+    </a>
+    <a class="exam-card" href="/create">
+      <span class="exam-card-icon">📝</span>
+      <div class="exam-card-name">CBSE Board</div>
+      <div class="exam-card-desc">Class 10 & 12. MCQ + written format like real boards.</div>
+      <span class="exam-card-tag">Both · 30Q · 2hrs</span>
+    </a>
+    <a class="exam-card" href="/create">
+      <span class="exam-card-icon">🔥</span>
+      <div class="exam-card-name">Quick Test</div>
+      <div class="exam-card-desc">Any topic. 10 questions. 15 minutes. Fast revision check.</div>
+      <span class="exam-card-tag">MCQ · 10Q · 15min</span>
+    </a>
+  </div>
+
+  <!-- SCENARIO -->
+  <div class="scenario-box">
+    <h2>A NEET student's evening with Test lele</h2>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-time">4:00 PM</div>
+        <div class="timeline-content">
+          <strong>Finishes PW lecture on Cell Structure</strong>
+          <span>Understood the concepts — but will it stick for the exam?</span>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-time">4:05 PM</div>
+        <div class="timeline-content">
+          <strong>Opens Test lele <span class="tl-tag">NEET preset</span></strong>
+          <span>Types "Cell Structure" → clicks Generate. Full 15-question test loads in 8 seconds.</span>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-time">4:20 PM</div>
+        <div class="timeline-content">
+          <strong>Scores 12/15 — sees time per question</strong>
+          <span>Notices she spent 4 minutes on Q7. Identifies exactly where she's weak.</span>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-time">4:22 PM</div>
+        <div class="timeline-content">
+          <strong>Shares result on WhatsApp study group <span class="tl-tag">Viral</span></strong>
+          <span>3 friends immediately open Test lele to try to beat her score.</span>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-time">4:25 PM</div>
+        <div class="timeline-content">
+          <strong>Targeted revision only on 3 weak areas</strong>
+          <span>Not wasting 2 hours on what she already knows. Back to PW for just the gaps.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL CTA -->
+  <div class="final-cta">
+    <h2>Want to see what<br/>this becomes?</h2>
+    <p>Try the prototype. Give us honest feedback. If students find it useful — we'll build the real AI version.</p>
+    <a class="btn-primary" href="/create" style="font-size:1.1rem;padding:18px 40px;">
+      ⚡ Try the Prototype
+    </a>
+    <p style="margin-top:16px;font-size:.82rem;color:var(--muted);">
+      🚧 No AI yet · Questions are template-based · Feedback helps us improve
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>
