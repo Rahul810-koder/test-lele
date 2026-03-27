@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import anthropic
 import os
 import re
 import uuid
@@ -338,6 +339,112 @@ def exam_page(request: Request, exam_id: str):
 def waitlist_page(request: Request):
     return templates.TemplateResponse("waitlist.html", {"request": request})
 
+@app.post("/api/generate-questions")
+async def generate_questions_ai(request: Request):
+    body = await request.json()
+    topic = clean_text(body.get("topic", "General Knowledge"))
+    exam_format = body.get("exam_format", "CBSE")  # JEE / NEET / CBSE / Quick Test
+    num_questions = safe_int(str(body.get("num_questions", 10)), 10, 3, 30)
+
+    difficulty_map = {
+        "JEE": "hard, conceptual, numerical, multi-step reasoning",
+        "NEET": "medium-hard, biology/chemistry/physics based, factual + application",
+        "CBSE": "medium, NCERT-aligned, definition and application based",
+        "Quick Test": "easy to medium, fast recall"
+    }
+    difficulty_desc = difficulty_map.get(exam_format, "medium")
+
+    prompt = f"""You are an expert Indian exam question setter for {exam_format}.
+Generate exactly {num_questions} multiple choice questions on the topic: "{topic}".
+Difficulty: {difficulty_desc}.
+Style: PYQ (past year question) style — clear, unambiguous, exam-ready.
+
+Rules:
+- Each question must have exactly 4 options: A, B, C, D
+- Exactly one correct answer
+- Include a brief explanation (1-2 lines) for the correct answer
+- Questions must be topic-specific, not generic
+
+Respond ONLY with a valid JSON array. No preamble, no markdown, no backticks.
+Format:
+[
+  {{
+    "q": "Question text here?",
+    "options": [
+      {{"key": "A", "text": "Option A"}},
+      {{"key": "B", "text": "Option B"}},
+      {{"key": "C", "text": "Option C"}},
+      {{"key": "D", "text": "Option D"}}
+    ],
+    "answer": "A",
+    "explain": "Brief explanation of why A is correct."
+  }}
+]"""
+
+    try:
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=4096,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = message.content[0].text.strip()
+        # strip markdown fences if any
+        raw = re.sub(r"^```json|^```|```$", "", raw, flags=re.MULTILINE).strip()
+        questions = json.loads(raw)
+        # tag each as mcq type
+        for q in questions:
+            q["type"] = "mcq"
+        return JSONResponse({"ok": True, "questions": questions})
+    except json.JSONDecodeError:
+        return JSONResponse({"ok": False, "error": "AI returned invalid JSON"}, status_code=500)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+```
+
+---
+
+**Why Claude Haiku?**
+- Cheapest model, fast, your free credits will last way longer
+- Good enough for MCQ generation
+
+---
+
+**Step 3 — Frontend change**
+
+In your `index.html` form submit, instead of POSTing to `/create` directly, you'll first call `/api/generate-questions`, get AI questions, store them, then redirect to exam. But this touches your frontend JS.
+
+**Can you paste the form submit JS from `index.html`?** Or share:
+```
+https://raw.githubusercontent.com/Rahul810-koder/test-lele/main/templates/index.html
+
+@app.post("/api/store-exam")
+async def store_exam(request: Request):
+    body = await request.json()
+    topic = clean_text(body.get("topic", "General Knowledge"))
+    questions = body.get("questions", [])
+    timer_m = int(body.get("timer_minutes", 0))
+    difficulty = body.get("difficulty", "medium")
+    mode = body.get("mode", "practice")
+
+    exam_id = str(uuid.uuid4())
+    EXAMS[exam_id] = {
+        "id": exam_id,
+        "created_at": int(time.time()),
+        "title": f"Test: {topic[:40]}",
+        "meta": {
+            "difficulty": difficulty,
+            "qtype": "mcq",
+            "include_answers": True,
+            "timer_minutes": timer_m,
+            "mode": mode,
+            "ai_generated": True,
+        },
+        "questions": questions,
+        "submitted": False,
+        "result": None,
+    }
+    return JSONResponse({"exam_id": exam_id})
 # ---------------------------
 # API (Exam data + submit)
 # ---------------------------

@@ -207,8 +207,8 @@
 
     <div class="card">
       <h2>Create a Test</h2>
-      <form class="form" id="mainForm" action="/create" method="post" enctype="multipart/form-data">
-
+      
+<form class="form" id="mainForm" enctype="multipart/form-data">
         <div class="field">
           <label class="label">Topic / Notes</label>
           <textarea class="input" name="topic" id="topicInput"
@@ -428,6 +428,57 @@
       </div>
     </div>
   </div>
+<script>
+document.getElementById("mainForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const btn = document.querySelector(".submit-btn");
+  btn.disabled = true;
+  btn.textContent = "⚡ Generating with AI...";
+
+  const topic = document.getElementById("topicInput").value || "General Knowledge";
+  const activePreset = document.querySelector(".preset-btn.active")?.dataset.preset || "cbse";
+const formatMap = {neet: "NEET", jee: "JEE", cbse: "CBSE", quick: "Quick Test"};
+const examFormat = formatMap[activePreset] || "CBSE";
+  const numQ = document.querySelector("[name=num_questions]")?.value || 10;
+  const difficulty = document.querySelector("[name=difficulty]")?.value || "medium";
+  const timerMinutes = document.querySelector("[name=timer_minutes]")?.value || 0;
+
+  try {
+    const res = await fetch("/api/generate-questions", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        topic,
+        exam_format: examFormat,
+        num_questions: parseInt(numQ),
+        difficulty,
+        timer_minutes: parseInt(timerMinutes)
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "AI failed");
+
+    // Store questions and redirect
+    const storeRes = await fetch("/api/store-exam", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        topic,
+        questions: data.questions,
+        timer_minutes: parseInt(timerMinutes),
+        difficulty,
+        mode: "practice"
+      })
+    });
+    const stored = await storeRes.json();
+    window.location.href = `/exam/${stored.exam_id}`;
+  } catch(err) {
+    btn.disabled = false;
+    btn.textContent = "Generate Test →";
+    alert("Error: " + err.message);
+  }
+});
+</script>
 
   <script src="/static/app.js"></script>
   <script>
