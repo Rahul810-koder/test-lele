@@ -3,4 +3,4 @@ uvicorn[standard]
 jinja2
 python-multipart
 pypdf
-anthropic
+google-genai

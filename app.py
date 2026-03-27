@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import anthropic
+import google.genai as genai
 import os
 import re
 import uuid
@@ -343,7 +343,7 @@ def waitlist_page(request: Request):
 async def generate_questions_ai(request: Request):
     body = await request.json()
     topic = clean_text(body.get("topic", "General Knowledge"))
-    exam_format = body.get("exam_format", "CBSE")  # JEE / NEET / CBSE / Quick Test
+    exam_format = body.get("exam_format", "CBSE")
     num_questions = safe_int(str(body.get("num_questions", 10)), 10, 3, 30)
 
     difficulty_map = {
@@ -382,17 +382,14 @@ Format:
 ]"""
 
     try:
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}]
+        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
         )
-        raw = message.content[0].text.strip()
-        # strip markdown fences if any
+        raw = response.text.strip()
         raw = re.sub(r"^```json|^```|```$", "", raw, flags=re.MULTILINE).strip()
         questions = json.loads(raw)
-        # tag each as mcq type
         for q in questions:
             q["type"] = "mcq"
         return JSONResponse({"ok": True, "questions": questions})
