@@ -397,24 +397,7 @@ Format:
         return JSONResponse({"ok": False, "error": "AI returned invalid JSON"}, status_code=500)
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-```
-
----
-
-**Why Claude Haiku?**
-- Cheapest model, fast, your free credits will last way longer
-- Good enough for MCQ generation
-
----
-
-**Step 3 — Frontend change**
-
-In your `index.html` form submit, instead of POSTing to `/create` directly, you'll first call `/api/generate-questions`, get AI questions, store them, then redirect to exam. But this touches your frontend JS.
-
-**Can you paste the form submit JS from `index.html`?** Or share:
-```
-https://raw.githubusercontent.com/Rahul810-koder/test-lele/main/templates/index.html
-
+    
 @app.post("/api/store-exam")
 async def store_exam(request: Request):
     body = await request.json()
