@@ -2,83 +2,172 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
   <title>Test lele</title>
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-5WLDJPTWEG"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-5WLDJPTWEG');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5WLDJPTWEG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-5WLDJPTWEG');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css"/>
+  <style>
+    body { font-family: 'Outfit', sans-serif !important; }
+
+    /* ── Mobile nav ── */
+    @media (max-width: 600px) {
+      .page { padding: 10px 12px 80px; }
+      .nav  { padding: 10px 0 14px; flex-wrap: wrap; gap: 6px; }
+      .brandSub { display: none; }
+      .navRight { gap: 5px; flex-wrap: wrap; }
+      .btn.ghost { padding: 7px 9px; font-size: .76rem; }
+      .pill { padding: 5px 9px; font-size: .76rem; }
+      .exam-title { font-size: 1.15rem; }
+      .exam-header { padding: 14px 16px; }
+    }
+
+    /* ── Question cards mobile ── */
+    @media (max-width: 600px) {
+      .q-card { padding: 15px 14px; border-radius: 14px; }
+      .q-text { font-size: .92rem; }
+      .opt    { padding: 10px 12px; font-size: .88rem; }
+    }
+
+    /* ── Sticky footer on mobile ── */
+    .exam-footer {
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+    }
+    @media (max-width: 600px) {
+      .exam-footer { padding: 12px 14px; border-radius: 0; border-left: none; border-right: none; border-bottom: none; }
+    }
+
+    /* ── Progress bar ── */
+    .exam-progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 999px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .exam-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width .4s ease;
+    }
+
+    /* ── Q number dots ── */
+    .q-dots-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .q-dot {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--surface2);
+      display: grid; place-items: center;
+      font-size: .72rem; font-weight: 800;
+      cursor: pointer; transition: all .15s;
+      color: var(--muted);
+    }
+    .q-dot.answered { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+    .q-dot.current  { border-color: var(--accent); color: var(--accent); }
+    @media (max-width: 600px) {
+      .q-dot { width: 26px; height: 26px; font-size: .68rem; border-radius: 7px; }
+    }
+  </style>
 </head>
 <body>
-  <main class="page">
-    <header class="nav">
-      <div class="brand">
-        <div class="mark">TL</div>
-        <div>
-          <div class="brandName">Test lele</div>
-          <div class="brandSub" id="paperMeta">Loading…</div>
-        </div>
-      </div>
-      <div class="navRight">
-        <span class="pill" id="timerPill" style="display:none;">⏱ 00:00</span>
-        <span class="pill" id="progressPill">Loading…</span>
-        <button class="btn ghost" id="slideModeBtn" type="button">▦ Slide</button>
-        <button class="btn ghost" id="themeBtn" type="button">🌙 Theme</button>
-        <button class="btn ghost" id="printBtn" type="button">🖨 Print</button>
-      </div>
-    </header>
-
-    <div class="exam-header">
-      <h1 class="exam-title" id="paperTitle">Test Paper</h1>
-      <div class="exam-info" id="paperInfo">Answer all questions carefully.</div>
-    </div>
-
-    <div id="paper"></div>
-
-    <div class="exam-footer">
+<main class="page">
+  <header class="nav">
+    <div class="brand">
+      <div class="mark">TL</div>
       <div>
-        <button class="btn" id="submitBtn" type="button">Submit Exam</button>
-      </div>
-      <div class="sub-status" id="submitStatus"></div>
-    </div>
-
-    <div id="result" style="display:none;"></div>
-
-    <div class="modal" id="timeOverModal" style="display:none;">
-      <div class="modal-card">
-        <h3>⏱ Time's Up!</h3>
-        <p>Your exam has been auto-submitted. Timer has stopped and answers are locked.</p>
-        <button class="btn" id="timeOverOk" type="button">View Results</button>
+        <div class="brandName">Test lele</div>
+        <div class="brandSub" id="paperMeta">Loading...</div>
       </div>
     </div>
-    <!-- Waitlist Modal (shows after result) -->
+    <div class="navRight">
+      <span class="pill" id="timerPill" style="display:none;">⏱ 00:00</span>
+      <span class="pill" id="progressPill">Q 0/0</span>
+      <button class="btn ghost" id="slideModeBtn" type="button">▦ Slide</button>
+      <button class="btn ghost" id="themeBtn" type="button">🌙</button>
+      <button class="btn ghost" id="printBtn" type="button" style="display:none;">🖨</button>
+    </div>
+  </header>
+
+  <!-- Progress bar -->
+  <div class="exam-progress-bar">
+    <div class="exam-progress-fill" id="examProgressFill" style="width:0%"></div>
+  </div>
+
+  <div class="exam-header">
+    <h1 class="exam-title" id="paperTitle">Test Paper</h1>
+    <div class="exam-info" id="paperInfo">Answer all questions carefully.</div>
+  </div>
+
+  <!-- Q number dots -->
+  <div class="q-dots-wrap" id="qDots" style="display:none;"></div>
+
+  <!-- Slide nav -->
+  <div class="slide-progress-bar"><div class="slide-progress-fill" id="slideProgressFill"></div></div>
+  <div class="slide-nav">
+    <button class="slide-btn" id="slidePrev">← Prev</button>
+    <span class="slide-counter" id="slideCounter"></span>
+    <button class="slide-btn" id="slideNext">Next →</button>
+  </div>
+
+  <div id="paper"></div>
+
+  <div class="exam-footer">
+    <button class="btn" id="submitBtn" type="button" style="font-weight:800;padding:12px 22px;">Submit Exam</button>
+    <div class="sub-status" id="submitStatus"></div>
+  </div>
+
+  <div id="result" style="display:none;"></div>
+
+  <div class="modal" id="timeOverModal" style="display:none;">
+    <div class="modal-card">
+      <h3>⏱ Time's Up!</h3>
+      <p>Your exam has been auto-submitted.</p>
+      <button class="btn" id="timeOverOk" type="button">View Results</button>
+    </div>
+  </div>
+
+  <!-- Waitlist Modal -->
   <div class="wl-modal" id="wlModal" style="display:none;">
     <div class="wl-modal-card">
       <div class="wl-modal-head">
         <h3>👋 How was Test lele?</h3>
         <button class="wl-close" id="wlClose">✕</button>
       </div>
-      <p class="wl-sub">Join our waitlist for new features + updates. Takes 20 seconds!</p>
-
+      <p class="wl-sub">Quick feedback? Takes 20 seconds. Helps us improve!</p>
       <form class="form" id="wlForm" action="https://formspree.io/f/maqpwqev" method="POST">
         <div class="field">
           <label class="label">Your Name</label>
           <input class="input" type="text" name="name" placeholder="Rahul Sharma" required/>
         </div>
         <div class="field">
-          <label class="label">Email Address</label>
+          <label class="label">Email</label>
           <input class="input" type="email" name="email" placeholder="rahul@example.com" required/>
         </div>
         <div class="field">
           <label class="label">Rate your experience</label>
           <select class="input" name="rating">
-            <option value="">Select…</option>
+            <option value="">Select...</option>
             <option value="5">⭐⭐⭐⭐⭐ Excellent!</option>
             <option value="4">⭐⭐⭐⭐ Good</option>
             <option value="3">⭐⭐⭐ Okay</option>
@@ -87,50 +176,84 @@
           </select>
         </div>
         <div class="field">
-          <label class="label">What should we improve? <span style="font-weight:400;text-transform:none;">(optional)</span></label>
-          <textarea class="input" name="feedback" placeholder="e.g. Add Hindi support, better questions, share results…" style="min-height:68px;"></textarea>
+          <label class="label">Feedback <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <textarea class="input" name="feedback" placeholder="What should we improve?" style="min-height:60px;"></textarea>
         </div>
         <input type="hidden" name="_subject" value="Test lele — post-exam feedback!"/>
-        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:12px;">
-          Submit Feedback →
-        </button>
-        <p style="font-size:.76rem;color:var(--muted);text-align:center;margin-top:8px;">No spam. Only launch updates. 🙏</p>
+        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:13px;">Submit Feedback →</button>
+        <p style="font-size:.74rem;color:var(--muted);text-align:center;margin-top:8px;">No spam. Only launch updates. 🙏</p>
       </form>
-
       <div class="wl-success" id="wlSuccess">
         <div class="tick">🙏</div>
         <h3>Thank you!</h3>
-        <p>Your feedback means a lot to us.<br/>We'll keep building!</p>
+        <p>Your feedback means a lot. We'll keep building!</p>
       </div>
     </div>
   </div>
-  </main>
-  <script src="/static/exam.js"></script>
-  <script>
-    // Waitlist modal close button for exam page
-    document.getElementById("wlClose")?.addEventListener("click", () => {
-      document.getElementById("wlModal").style.display = "none";
+</main>
+
+<script>
+// Q-dot progress tracker — injected after exam.js builds questions
+function initQDots(total) {
+  const wrap = document.getElementById('qDots');
+  if (!wrap || total === 0) return;
+  wrap.style.display = 'flex';
+  wrap.innerHTML = '';
+  for (let i = 1; i <= total; i++) {
+    const d = document.createElement('div');
+    d.className = 'q-dot';
+    d.textContent = i;
+    d.id = `qdot-${i}`;
+    d.addEventListener('click', () => {
+      const el = document.getElementById(`q-card-${i}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
-    document.getElementById("wlModal")?.addEventListener("click", (e) => {
-      if (e.target === document.getElementById("wlModal"))
-        document.getElementById("wlModal").style.display = "none";
-    });
-    document.getElementById("wlForm")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = e.target.querySelector("button[type=submit]");
-      btn.disabled = true; btn.textContent = "Submitting…";
-      try {
-        const res = await fetch(e.target.action, {
-          method: "POST", body: new FormData(e.target),
-          headers: { "Accept": "application/json" }
-        });
-        if (res.ok) {
-          document.getElementById("wlForm").style.display = "none";
-          document.getElementById("wlSuccess").style.display = "block";
-          setTimeout(() => { document.getElementById("wlModal").style.display = "none"; }, 3000);
-        } else { btn.disabled = false; btn.textContent = "Try again →"; }
-      } catch { btn.disabled = false; btn.textContent = "Try again →"; }
-    });
-  </script>
+    wrap.appendChild(d);
+  }
+}
+
+function markQDotAnswered(qNum) {
+  const d = document.getElementById(`qdot-${qNum}`);
+  if (d) d.classList.add('answered');
+  // Update progress bar
+  const answered = document.querySelectorAll('.q-dot.answered').length;
+  const total = document.querySelectorAll('.q-dot').length;
+  if (total > 0) {
+    document.getElementById('examProgressFill').style.width = `${(answered/total)*100}%`;
+  }
+}
+
+// Expose globally so exam.js can call
+window.initQDots = initQDots;
+window.markQDotAnswered = markQDotAnswered;
+</script>
+
+<script src="/static/exam.js"></script>
+
+<script>
+document.getElementById("wlClose")?.addEventListener("click", () => {
+  document.getElementById("wlModal").style.display = "none";
+});
+document.getElementById("wlModal")?.addEventListener("click", e => {
+  if (e.target === document.getElementById("wlModal"))
+    document.getElementById("wlModal").style.display = "none";
+});
+document.getElementById("wlForm")?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = e.target.querySelector("button[type=submit]");
+  btn.disabled = true; btn.textContent = "Submitting...";
+  try {
+    const res = await fetch(e.target.action, { method: "POST", body: new FormData(e.target), headers: { "Accept": "application/json" } });
+    if (res.ok) {
+      document.getElementById("wlForm").style.display = "none";
+      document.getElementById("wlSuccess").style.display = "block";
+      setTimeout(() => { document.getElementById("wlModal").style.display = "none"; }, 3000);
+    } else { btn.disabled = false; btn.textContent = "Try again →"; }
+  } catch { btn.disabled = false; btn.textContent = "Try again →"; }
+});
+
+// Show print btn on desktop
+if (window.innerWidth > 600) document.getElementById('printBtn').style.display = 'inline-flex';
+</script>
 </body>
- </html>
+</html>

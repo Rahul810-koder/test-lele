@@ -3,828 +3,729 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
-  <title>Test lele — Practice Test Generator</title>
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-5WLDJPTWEG"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-5WLDJPTWEG');
-</script>
+  <title>Test lele — AI Practice Test Generator</title>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5WLDJPTWEG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-5WLDJPTWEG');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css"/>
   <style>
-    @media (max-width: 600px) {
-      .page { padding: 12px 14px 80px; }
-      .nav { padding: 10px 0 14px; flex-wrap: nowrap; gap: 8px; }
-      .brandName { font-size: .95rem; }
-      .brandSub { display: none; }
-      .navRight { gap: 6px; }
-      .btn.ghost { padding: 8px 10px; font-size: .78rem; }
-      .home-hero { padding: 20px 0 16px; }
-      .home-hero h1 { font-size: 1.9rem; letter-spacing: -1px; margin-bottom: 10px; }
-      .home-hero p { font-size: .88rem; }
-      .feat-tags { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; gap: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-      .feat-tags::-webkit-scrollbar { display: none; }
-      .feat-tag { white-space: nowrap; flex-shrink: 0; font-size: .76rem; padding: 4px 10px; }
-      .card { padding: 18px 14px; }
-      .card h2 { font-size: 1rem; margin-bottom: 14px; }
-      .label { font-size: .75rem; }
-      .input, select, textarea { font-size: 16px; padding: 12px; border-radius: 10px; }
-      textarea { min-height: 80px; }
-      .row2 { grid-template-columns: 1fr !important; gap: 10px; }
-      .file-upload { padding: 12px; font-size: .85rem; }
-      .wl-modal-card { padding: 20px 16px; max-height: 92vh; overflow-y: auto; }
-      .demo-topics { gap: 6px; }
-      .demo-chip { font-size: .78rem; padding: 6px 12px; }
-      .wl-section { padding: 20px 16px; }
-      .wl-section h2 { font-size: 1.2rem; }
+    body { font-family: 'Outfit', sans-serif !important; }
+
+    /* ── Loading Overlay ── */
+    .loading-overlay {
+      position: fixed; inset: 0; background: var(--bg);
+      z-index: 9999; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 24px; text-align: center;
+      opacity: 0; pointer-events: none; transition: opacity .3s;
+    }
+    .loading-overlay.active { opacity: 1; pointer-events: all; }
+    .loading-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; }
+    .loading-mark {
+      width: 42px; height: 42px; background: var(--accent);
+      color: var(--accent-fg); border-radius: 12px;
+      display: grid; place-items: center; font-weight: 900; font-size: 15px;
+    }
+    .loading-name { font-weight: 800; font-size: 1.15rem; }
+    .loading-spinner {
+      width: 56px; height: 56px;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.9s linear infinite; margin-bottom: 32px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-status { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .loading-dots::after {
+      content: ''; animation: dots 1.5s steps(4, end) infinite;
+    }
+    @keyframes dots { 0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';} }
+    .funfact-card {
+      margin-top: 32px; max-width: 380px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 18px; padding: 20px 22px; box-shadow: var(--shadow);
+      animation: factSlide .5s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes factSlide {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .funfact-label {
+      font-size: .72rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .funfact-text {
+      font-size: .95rem; line-height: 1.65; color: var(--text);
+      font-family: 'Kalam', cursive; font-weight: 400;
     }
 
-    /* Demo topics */
+    /* ── Hero ── */
+    .create-hero { padding: 18px 0 6px; }
+    .create-hero h1 {
+      font-size: clamp(1.55rem, 5vw, 2.1rem); font-weight: 900;
+      letter-spacing: -1px; line-height: 1.15; margin-bottom: 6px;
+    }
+    .create-hero p { font-size: .88rem; color: var(--muted); margin-bottom: 16px; }
+
+    /* ── Demo chips ── */
     .demo-topics {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
+      display: flex; flex-wrap: nowrap; gap: 7px; margin-top: 10px;
+      overflow-x: auto; padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }
+    .demo-topics::-webkit-scrollbar { display: none; }
     .demo-chip {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 7px 14px;
-      font-size: .82rem;
-      font-weight: 600;
-      color: var(--text);
-      cursor: pointer;
-      transition: all .15s;
-      white-space: nowrap;
+      background: var(--surface2); border: 1.5px solid var(--border);
+      border-radius: 999px; padding: 7px 14px; font-size: .82rem;
+      font-weight: 700; color: var(--text); cursor: pointer;
+      transition: all .15s; white-space: nowrap; flex-shrink: 0;
+      font-family: 'Outfit', sans-serif;
     }
-    .demo-chip:hover {
-      background: var(--accent);
-      color: var(--accent-fg);
-      border-color: var(--accent);
-    }
-    .demo-chip.active {
-      background: var(--accent);
-      color: var(--accent-fg);
-      border-color: var(--accent);
+    .demo-chip:hover, .demo-chip.active {
+      background: var(--accent); color: var(--accent-fg); border-color: var(--accent);
     }
 
-    /* Waitlist section */
+    /* ── Preset grid ── */
+    .preset-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+    .preset-btn {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+      background: var(--surface2); border: 2px solid var(--border);
+      border-radius: 14px; padding: 12px 13px; cursor: pointer;
+      transition: all .15s; font-family: 'Outfit', sans-serif;
+      text-align: left; width: 100%;
+    }
+    .preset-btn:hover { border-color: var(--accent); background: var(--surface); }
+    .preset-btn.active { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+    .preset-btn.active .preset-meta { color: var(--accent-fg); opacity: .75; }
+    .preset-icon { font-size: 1.25rem; }
+    .preset-name { font-size: .88rem; font-weight: 800; }
+    .preset-meta { font-size: .7rem; color: var(--muted); font-weight: 600; }
+
+    /* ── Question Type Selector ── */
+    .qtype-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+    }
+    .qtype-btn {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 4px;
+      background: var(--surface2); border: 2px solid var(--border);
+      border-radius: 14px; padding: 14px 10px; cursor: pointer;
+      transition: all .15s; font-family: 'Outfit', sans-serif;
+      text-align: center; width: 100%;
+    }
+    .qtype-btn:hover { border-color: var(--accent); background: var(--surface); }
+    .qtype-btn.active { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+    .qtype-btn.active .qtype-desc { color: var(--accent-fg); opacity: .75; }
+    .qtype-icon { font-size: 1.0rem; }
+    .qtype-name { font-size: .88rem; font-weight: 800; }
+    .qtype-desc { font-size: .7rem; color: var(--muted); font-weight: 600; }
+
+    /* ── Generate button ── */
+    .submit-btn {
+      width: 100%; justify-content: center; padding: 15px;
+      font-size: 1rem; font-weight: 800; border-radius: 14px; letter-spacing: -.2px;
+    }
+    @media (max-width: 600px) {
+      .submit-btn { position: sticky; bottom: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.22); }
+    }
+
+    /* ── Waitlist section ── */
     .wl-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px 24px;
-      margin-top: 16px;
-      box-shadow: var(--shadow);
-      text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px 20px; margin-top: 14px;
+      text-align: center; box-shadow: var(--shadow);
     }
-    .wl-section .rocket { font-size: 2rem; margin-bottom: 10px; }
-    .wl-section h2 {
-      font-size: 1.4rem;
-      font-weight: 900;
-      letter-spacing: -.5px;
-      margin-bottom: 8px;
-    }
-    .wl-section p {
-      color: var(--muted);
-      font-size: .9rem;
-      margin-bottom: 18px;
-      line-height: 1.6;
-    }
-    .wl-features {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
+    .wl-section .rocket { font-size: 1.8rem; margin-bottom: 8px; }
+    .wl-section h2 { font-size: 1.15rem; font-weight: 900; margin-bottom: 6px; }
+    .wl-section p { color: var(--muted); font-size: .86rem; margin-bottom: 14px; line-height: 1.6; }
+    .wl-features { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; }
     .wl-feat {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 5px 14px;
-      font-size: .8rem;
-      color: var(--muted);
-      font-weight: 600;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 999px; padding: 4px 12px; font-size: .76rem; color: var(--muted); font-weight: 600;
     }
     .wl-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--accent);
-      color: var(--accent-fg);
-      border: none;
-      border-radius: var(--radius-sm);
-      padding: 13px 28px;
-      font-size: 1rem;
-      font-weight: 800;
-      cursor: pointer;
-      transition: opacity .15s;
-      font-family: var(--font);
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: var(--accent-fg); border: none;
+      border-radius: var(--radius-sm); padding: 12px 24px; font-size: .95rem;
+      font-weight: 800; cursor: pointer; transition: opacity .15s; font-family: 'Outfit', sans-serif;
     }
     .wl-btn:hover { opacity: .88; }
 
-    /* Submit sticky */
-    .submit-btn {
-      width: 100%;
-      justify-content: center;
-      padding: 13px;
-      font-size: .95rem;
-    }
+    /* ── Mobile ── */
     @media (max-width: 600px) {
-      .submit-btn {
-        padding: 15px !important;
-        font-size: 1rem !important;
-        position: sticky;
-        bottom: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,.2);
-      }
+      .page { padding: 10px 16px 90px; }
+      .nav { padding: 12px 0 16px; }
+      .brandSub { display: none; }
+      .btn.ghost { padding: 8px 10px; font-size: .8rem; }
+      .card { padding: 20px 18px; }
+      .row2 { grid-template-columns: 1fr 1fr !important; gap: 9px; }
+      .input, select, textarea { font-size: 16px !important; }
+      .qtype-grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+      .qtype-name { font-size: .78rem; }
     }
-    /* Preset buttons */
-.preset-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-.preset-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  background: var(--surface2);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: all .15s;
-  font-family: var(--font);
-  text-align: left;
-  width: 100%;
-}
-.preset-btn:hover {
-  border-color: var(--accent);
-  background: var(--surface);
-}
-.preset-btn.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-fg);
-}
-.preset-btn.active .preset-meta {
-  color: var(--accent-fg);
-  opacity: .8;
-}
-.preset-icon { font-size: 1.3rem; }
-.preset-name { font-size: .9rem; font-weight: 800; }
-.preset-meta { font-size: .72rem; color: var(--muted); font-weight: 600; }
-
-@media (max-width: 400px) {
-  .preset-grid { grid-template-columns: repeat(2, 1fr); }
-  .preset-name { font-size: .82rem; }
-}
   </style>
 </head>
 <body>
-  <main class="page">
 
-    <header class="nav">
-      <div class="brand">
-        <div class="mark">TL</div>
-        <div>
-          <div class="brandName">Test lele</div>
-          <div class="brandSub">AI exam builder</div>
-        </div>
-      </div>
-      <div class="navRight">
-        <button class="btn ghost" id="waitlistBtn" type="button">🔔 Waitlist</button>
-        <button class="btn ghost" id="themeBtn" type="button">🌙</button>
-      </div>
-    </header>
-
-    <div class="card">
-      <h2>Create a Test</h2>
-      
-<form class="form" id="mainForm" enctype="multipart/form-data">
-        <div class="field">
-          <label class="label">Topic / Notes</label>
-          <textarea class="input" name="topic" id="topicInput"
-            placeholder="e.g. JEE Physics – Current Electricity"></textarea>
-          <span class="hint">Keep it focused to one chapter for best results.</span>
-        </div>
-
-        <!-- ② + ③ Example topics + Try Demo -->
-        <div>
-          <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
-            Try an example topic →
-          </div>
-          <div class="demo-topics">
-            <span class="demo-chip" data-topic="JEE Physics – Current Electricity">⚡ JEE Physics</span>
-            <span class="demo-chip" data-topic="NEET Biology – Cell Structure and Function">🧬 NEET Biology</span>
-            <span class="demo-chip" data-topic="Class 10 Science – Acids Bases and Salts">🧪 Class 10 Science</span>
-            <span class="demo-chip" data-topic="Python Programming – Loops and Functions">🐍 Python</span>
-            <span class="demo-chip" data-topic="Class 12 History – Nationalism in India">📚 Class 12 History</span>
-            <span class="demo-chip" data-topic="CAT Preparation – Quantitative Aptitude">📊 CAT Prep</span>
-          </div>
-        </div>
-        <!-- Exam Format Presets -->
-<div class="field">
-  <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
-    Quick format presets →
+<!-- Loading Overlay with Fun Facts -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-brand">
+    <div class="loading-mark">TL</div>
+    <span class="loading-name">Test lele</span>
   </div>
-  <div class="preset-grid">
-    <button type="button" class="preset-btn" data-preset="neet">
-      <span class="preset-icon">🧬</span>
-      <span class="preset-name">NEET</span>
-      <span class="preset-meta">180Q · 3hrs · Mixed</span>
-    </button>
-    <button type="button" class="preset-btn" data-preset="jee">
-      <span class="preset-icon">⚡</span>
-      <span class="preset-name">JEE Main</span>
-      <span class="preset-meta">75Q · 3hrs · Mixed</span>
-    </button>
-    <button type="button" class="preset-btn" data-preset="cbse">
-      <span class="preset-icon">📝</span>
-      <span class="preset-name">CBSE Board</span>
-      <span class="preset-meta">30Q · 2hrs · Both</span>
-    </button>
-    <button type="button" class="preset-btn" data-preset="quick">
-      <span class="preset-icon">⚡</span>
-      <span class="preset-name">Quick Test</span>
-      <span class="preset-meta">10Q · 15min · MCQ</span>
-    </button>
+  <div class="loading-spinner"></div>
+  <div class="loading-status">Generating your test<span class="loading-dots"></span></div>
+  <div class="funfact-card" id="funfactCard">
+    <div class="funfact-label">💡 Did you know?</div>
+    <div class="funfact-text" id="funfactText">Loading a fun fact...</div>
   </div>
 </div>
 
-        <div class="field">
-          <label class="label">Upload PDF or Image (optional)</label>
-          <label class="file-upload">
-            <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg"/>
-            <span>📎</span>
-            <span class="file-text">Choose file…</span>
-          </label>
-        </div>
-
-        <div class="row2">
-          <div class="field">
-            <label class="label">Difficulty</label>
-            <select class="input" name="difficulty">
-              <option value="easy">Easy</option>
-              <option value="medium" selected>Medium</option>
-              <option value="hard">Hard</option>
-              <option value="mixed">Mixed</option>
-            </select>
-          </div>
-          <div class="field">
-            <label class="label">Question Type</label>
-            <select class="input" name="question_type">
-              <option value="mcq">MCQ only</option>
-              <option value="written">Written only</option>
-              <option value="both" selected>Both</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row2">
-          <div class="field">
-            <label class="label">Number of Questions</label>
-            <input class="input" name="num_questions"
-              type="number" value="10" min="3" max="50"/>
-          </div>
-          <div class="field">
-            <label class="label">Timer (minutes)</label>
-            <input class="input" name="timer_minutes"
-              type="number" value="0" min="0" max="180"/>
-            <span class="hint">0 = no timer</span>
-          </div>
-        </div>
-
-        <div class="row2">
-          <div class="field">
-            <label class="label">Include Answers</label>
-            <select class="input" name="include_answers">
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-          </div>
-          <div class="field">
-            <label class="label">Mode</label>
-            <select class="input" name="exam_mode">
-              <option value="practice">Practice</option>
-              <option value="exam">Exam</option>
-            </select>
-          </div>
-        </div>
-
-        <button class="btn submit-btn" type="submit">
-          Generate Test →
-        </button>
-
-      </form>
-    </div>
-
-    <!-- ④ Waitlist section — prominent -->
-    <div class="wl-section">
-      <div class="rocket">🚀</div>
-      <h2>AI test generation coming soon</h2>
-      <p>Real PYQ-style questions powered by AI — for JEE, NEET, CBSE and more.<br/>
-      Join the waitlist to get early access before everyone else.</p>
-      <div class="wl-features">
-        <span class="wl-feat">🎯 PYQ-style questions</span>
-        <span class="wl-feat">🧠 AI-powered feedback</span>
-        <span class="wl-feat">📧 Test history on email</span>
-        <span class="wl-feat">👥 Share with friends</span>
-        <span class="wl-feat">🏆 Leaderboard</span>
+<main class="page">
+  <header class="nav">
+    <div class="brand">
+      <div class="mark">TL</div>
+      <div>
+        <div class="brandName">Test lele</div>
+        <div class="brandSub">AI exam builder</div>
       </div>
-      <button class="wl-btn" id="waitlistBtn2">
-        🔔 Join the Waitlist — It's Free
-      </button>
-      <p style="font-size:.76rem;color:var(--muted);margin-top:12px;">
-        No spam. Only launch updates. 🙏
-      </p>
     </div>
-
-    <!-- MVP banner -->
-    <div style="
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 16px;
-      font-size: .82rem;
-      color: var(--muted);
-      margin-top: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    ">
-      🚧 <span><b>Early MVP</b> — Questions are template-based for now.
-      Real AI coming soon.
-      <a href="#" onclick="document.getElementById('wlModal').style.display='grid'"
-        style="color:var(--text);font-weight:700;">Join waitlist →</a></span>
+    <div class="navRight">
+      <button class="btn ghost" id="waitlistBtn" type="button">🔔 Waitlist</button>
+      <button class="btn ghost" id="themeBtn" type="button">🌙</button>
     </div>
+  </header>
 
-  </main>
+  <div class="create-hero">
+    <h1>Create your<br/>practice test ⚡</h1>
+    <p>Pick a topic, hit generate — full test ready in seconds.</p>
+  </div>
 
-  <!-- Waitlist Modal -->
-  <div class="wl-modal" id="wlModal" style="display:none;">
-    <div class="wl-modal-card">
-      <div class="wl-modal-head">
-        <h3>🔔 Join the Waitlist</h3>
-        <button class="wl-close" id="wlClose">✕</button>
+  <div class="card" style="margin-top:14px;">
+    <form class="form" id="mainForm">
+
+      <!-- Topic -->
+      <div class="field">
+        <label class="label">Topic / Chapter</label>
+        <textarea class="input" name="topic" id="topicInput"
+          placeholder="e.g. JEE Physics – Current Electricity" rows="2"></textarea>
+        <span class="hint">Keep it focused to one chapter for best results.</span>
       </div>
-      <p class="wl-sub">Be the first to know when AI-powered Test lele launches. No spam, ever.</p>
 
-      <form class="form" id="wlForm"
-        action="https://formspree.io/f/maqpwqev" method="POST">
+      <!-- Example chips -->
+      <div>
+        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Try an example →</div>
+        <div class="demo-topics">
+          <span class="demo-chip" data-topic="JEE Physics – Current Electricity">⚡ JEE Physics</span>
+          <span class="demo-chip" data-topic="NEET Biology – Cell Structure and Function">🧬 NEET Biology</span>
+          <span class="demo-chip" data-topic="Class 10 Science – Acids Bases and Salts">🧪 Class 10 Sci</span>
+          <span class="demo-chip" data-topic="Python Programming – Loops and Functions">🐍 Python</span>
+          <span class="demo-chip" data-topic="Class 12 History – Nationalism in India">📚 History</span>
+          <span class="demo-chip" data-topic="CAT Preparation – Quantitative Aptitude">📊 CAT Prep</span>
+        </div>
+      </div>
+
+      <!-- Exam Format Presets -->
+      <div class="field">
+        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Quick format →</div>
+        <div class="preset-grid">
+          <button type="button" class="preset-btn" data-preset="neet">
+            <span class="preset-icon">🧬</span>
+            <span class="preset-name">NEET</span>
+            <span class="preset-meta">45Q · 60min</span>
+          </button>
+          <button type="button" class="preset-btn" data-preset="jee">
+            <span class="preset-icon">⚡</span>
+            <span class="preset-name">JEE Main</span>
+            <span class="preset-meta">25Q · 60min</span>
+          </button>
+          <button type="button" class="preset-btn" data-preset="cbse">
+            <span class="preset-icon">📝</span>
+            <span class="preset-name">CBSE Board</span>
+            <span class="preset-meta">30Q · 2hrs</span>
+          </button>
+          <button type="button" class="preset-btn active" data-preset="quick">
+            <span class="preset-icon">🔥</span>
+            <span class="preset-name">Quick Test</span>
+            <span class="preset-meta">10Q · 15min</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Question Type Selector -->
+      <div class="field">
+        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Question type →</div>
+        <div class="qtype-grid">
+          <button type="button" class="qtype-btn active" data-qtype="mcq">
+            <span class="qtype-icon">🔘</span>
+            <span class="qtype-name">MCQ</span>
+            <span class="qtype-desc">4 options</span>
+          </button>
+          <button type="button" class="qtype-btn" data-qtype="written">
+            <span class="qtype-icon">✍️</span>
+            <span class="qtype-name">Written</span>
+            <span class="qtype-desc">Long answer</span>
+          </button>
+          <button type="button" class="qtype-btn" data-qtype="mix">
+            <span class="qtype-icon">🔀</span>
+            <span class="qtype-name">Mix</span>
+            <span class="qtype-desc">MCQ + Written</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Questions + Timer -->
+      <div class="row2">
         <div class="field">
-          <label class="label">Your Name</label>
-          <input class="input" type="text" name="name"
-            placeholder="Rahul Sharma" required/>
+          <label class="label">Questions</label>
+          <input class="input" name="num_questions" type="number" value="10" min="3" max="30"/>
         </div>
         <div class="field">
-          <label class="label">Email Address</label>
-          <input class="input" type="email" name="email"
-            placeholder="rahul@example.com" required/>
+          <label class="label">Timer (min)</label>
+          <input class="input" name="timer_minutes" type="number" value="15" min="0" max="180"/>
+          <span class="hint">0 = no timer</span>
         </div>
+      </div>
+
+      <!-- Difficulty + Mode -->
+      <div class="row2">
         <div class="field">
-          <label class="label">What will you use it for?</label>
-          <select class="input" name="use_case">
-            <option value="">Select one…</option>
-            <option value="jee">JEE preparation</option>
-            <option value="neet">NEET preparation</option>
-            <option value="cbse">CBSE / board exams</option>
-            <option value="self_study">General self study</option>
-            <option value="teacher">Teacher — making tests</option>
-            <option value="coaching">Coaching / tuition centre</option>
-            <option value="other">Just curious</option>
+          <label class="label">Difficulty</label>
+          <select class="input" name="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+            <option value="mixed">Mixed</option>
           </select>
         </div>
         <div class="field">
-          <label class="label">Any feedback?
-            <span style="font-weight:400;text-transform:none;">(optional)</span>
-          </label>
-          <textarea class="input" name="feedback"
-            placeholder="What features do you want? What's missing?"
-            style="min-height:68px;"></textarea>
+          <label class="label">Mode</label>
+          <select class="input" name="exam_mode">
+            <option value="practice" selected>Practice</option>
+            <option value="exam">Exam</option>
+          </select>
         </div>
-        <input type="hidden" name="_subject" value="New Test lele waitlist signup!"/>
-        <button class="btn" type="submit"
-          style="width:100%;justify-content:center;padding:13px;">
-          Join Waitlist →
-        </button>
-        <p style="font-size:.76rem;color:var(--muted);text-align:center;margin-top:8px;">
-          No spam. Only launch updates. 🙏
-        </p>
-      </form>
-
-      <div class="wl-success" id="wlSuccess">
-        <div class="tick">🎉</div>
-        <h3>You're on the list!</h3>
-        <p>We'll email you when Test lele launches AI features.<br/>
-          Thanks for supporting us!</p>
       </div>
+
+      <button class="btn submit-btn" type="submit" id="generateBtn">
+        ⚡ Generate Test
+      </button>
+    </form>
+  </div>
+
+  <!-- Waitlist section -->
+  <div class="wl-section">
+    <div class="rocket">🚀</div>
+    <h2>More features coming soon</h2>
+    <p>PYQ-style questions, test history, leaderboards and more.<br/>Join to get early access.</p>
+    <div class="wl-features">
+      <span class="wl-feat">🎯 PYQ-style</span>
+      <span class="wl-feat">🧠 AI feedback</span>
+      <span class="wl-feat">🏆 Leaderboard</span>
+      <span class="wl-feat">👥 Share tests</span>
+    </div>
+    <button class="wl-btn" id="waitlistBtn2">🔔 Join Waitlist — Free</button>
+    <p style="font-size:.74rem;color:var(--muted);margin-top:10px;">No spam. Only launch updates. 🙏</p>
+  </div>
+
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 16px;font-size:.8rem;color:var(--muted);margin-top:12px;display:flex;align-items:center;gap:8px;">
+    🤖 <span><b>AI Powered</b> — Questions generated by Groq (Llama 3.3) in real-time.</span>
+  </div>
+</main>
+
+<!-- Waitlist Modal -->
+<div class="wl-modal" id="wlModal" style="display:none;">
+  <div class="wl-modal-card">
+    <div class="wl-modal-head">
+      <h3>🔔 Join the Waitlist</h3>
+      <button class="wl-close" id="wlClose">✕</button>
+    </div>
+    <p class="wl-sub">Be the first to know when new features launch. No spam, ever.</p>
+    <form class="form" id="wlForm" action="https://formspree.io/f/maqpwqev" method="POST">
+      <div class="field">
+        <label class="label">Your Name</label>
+        <input class="input" type="text" name="name" placeholder="Rahul Sharma" required/>
+      </div>
+      <div class="field">
+        <label class="label">Email Address</label>
+        <input class="input" type="email" name="email" placeholder="rahul@example.com" required/>
+      </div>
+      <div class="field">
+        <label class="label">What will you use it for?</label>
+        <select class="input" name="use_case">
+          <option value="">Select one...</option>
+          <option value="jee">JEE preparation</option>
+          <option value="neet">NEET preparation</option>
+          <option value="cbse">CBSE / board exams</option>
+          <option value="self_study">General self study</option>
+          <option value="teacher">Teacher — making tests</option>
+          <option value="other">Just curious</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="label">Any feedback? <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+        <textarea class="input" name="feedback" placeholder="What features do you want?" style="min-height:64px;"></textarea>
+      </div>
+      <input type="hidden" name="_subject" value="New Test lele waitlist signup!"/>
+      <button class="btn" type="submit" style="width:100%;justify-content:center;padding:13px;">Join Waitlist →</button>
+      <p style="font-size:.74rem;color:var(--muted);text-align:center;margin-top:8px;">No spam. Only launch updates. 🙏</p>
+    </form>
+    <div class="wl-success" id="wlSuccess">
+      <div class="tick">🎉</div>
+      <h3>You're on the list!</h3>
+      <p>Thanks for supporting us!</p>
     </div>
   </div>
-<script>
-document.getElementById("mainForm").addEventListener("submit", async function(e) {
-  e.preventDefault();
-  const btn = document.querySelector(".submit-btn");
-  btn.disabled = true;
-  btn.textContent = "⚡ Generating with AI...";
+</div>
 
-  const topic = document.getElementById("topicInput").value || "General Knowledge";
-  const activePreset = document.querySelector(".preset-btn.active")?.dataset.preset || "cbse";
-const formatMap = {neet: "NEET", jee: "JEE", cbse: "CBSE", quick: "Quick Test"};
-const examFormat = formatMap[activePreset] || "CBSE";
-  const numQ = document.querySelector("[name=num_questions]")?.value || 10;
-  const difficulty = document.querySelector("[name=difficulty]")?.value || "medium";
-  const timerMinutes = document.querySelector("[name=timer_minutes]")?.value || 0;
-
-  try {
-    const res = await fetch("/api/generate-questions", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        topic,
-        exam_format: examFormat,
-        num_questions: parseInt(numQ),
-        difficulty,
-        timer_minutes: parseInt(timerMinutes)
-      })
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "AI failed");
-
-    // Store questions and redirect
-    const storeRes = await fetch("/api/store-exam", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        topic,
-        questions: data.questions,
-        timer_minutes: parseInt(timerMinutes),
-        difficulty,
-        mode: "practice"
-      })
-    });
-    const stored = await storeRes.json();
-    window.location.href = `/exam/${stored.exam_id}`;
-  } catch(err) {
-    btn.disabled = false;
-    btn.textContent = "Generate Test →";
-    alert("Error: " + err.message);
-  }
-});
-</script>
-
-  <script src="/static/app.js"></script>
-  <script>
-    // Demo topic chips
-    document.querySelectorAll(".demo-chip").forEach(chip => {
-      chip.addEventListener("click", () => {
-        const topic = chip.dataset.topic;
-        document.getElementById("topicInput").value = topic;
-        // highlight selected
-        document.querySelectorAll(".demo-chip").forEach(c => c.classList.remove("active"));
-        chip.classList.add("active");
-        // scroll to form smoothly
-        document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
-        document.getElementById("topicInput").focus();
-      });
-    });
-
-    // Second waitlist button
-    document.getElementById("waitlistBtn2")?.addEventListener("click", () => {
-      document.getElementById("wlModal").style.display = "grid";
-    });
-    // Exam format presets
-const presets = {
-  neet: {
-    topic: "NEET Biology – Cell Structure and Function",
-    num_questions: 45,
-    timer_minutes: 60,
-    difficulty: "mixed",
-    question_type: "mcq",
-    exam_mode: "exam"
-  },
-  jee: {
-    topic: "JEE Physics – Current Electricity",
-    num_questions: 25,
-    timer_minutes: 60,
-    difficulty: "hard",
-    question_type: "mcq",
-    exam_mode: "exam"
-  },
-  cbse: {
-    topic: "Class 10 Science – Acids Bases and Salts",
-    num_questions: 30,
-    timer_minutes: 120,
-    difficulty: "medium",
-    question_type: "both",
-    exam_mode: "practice"
-  },
-  quick: {
-    topic: "",
-    num_questions: 10,
-    timer_minutes: 15,
-    difficulty: "easy",
-    question_type: "mcq",
-    exam_mode: "practice"
-  }
-};
-
-document.querySelectorAll(".preset-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const key = btn.dataset.preset;
-    const p = presets[key];
-
-    // Fill form fields
-    if (p.topic) {
-      document.getElementById("topicInput").value = p.topic;
-    }
-    document.querySelector("[name=num_questions]").value = p.num_questions;
-    document.querySelector("[name=timer_minutes]").value = p.timer_minutes;
-    document.querySelector("[name=difficulty]").value = p.difficulty;
-    document.querySelector("[name=question_type]").value = p.question_type;
-    document.querySelector("[name=exam_mode]").value = p.exam_mode;
-
-    // Highlight active preset
-    document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-
-    // Scroll to topic box
-    document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
-    if (!p.topic) document.getElementById("topicInput").focus();
-  });
-});
-  </script>
-  <!-- TeLe Welcome Bot -->
+<!-- TeLe Bot -->
 <div id="teleBot" style="display:none;">
   <style>
     .tele-bot {
-      position: fixed;
-      bottom: 24px;
-      right: 20px;
-      width: min(320px, calc(100vw - 32px));
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      box-shadow: 0 8px 40px rgba(0,0,0,.18);
-      padding: 20px 18px 16px;
-      z-index: 1000;
+      position: fixed; bottom: 20px; right: 16px;
+      width: min(310px, calc(100vw - 28px));
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; box-shadow: 0 8px 40px rgba(0,0,0,.18);
+      padding: 18px 16px 14px; z-index: 1000;
       animation: botSlideUp .4s cubic-bezier(.16,1,.3,1);
     }
     @keyframes botSlideUp {
-      from { opacity: 0; transform: translateY(30px) scale(.95); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
+      from { opacity:0; transform:translateY(24px) scale(.96); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
     }
-    .tele-head {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
+    .tele-head { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
     .tele-avatar {
-      width: 42px;
-      height: 42px;
-      background: var(--accent);
-      color: var(--accent-fg);
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      font-size: 1.3rem;
-      flex-shrink: 0;
-      animation: botPulse 2s infinite;
+      width:38px; height:38px; background:var(--accent); color:var(--accent-fg);
+      border-radius:50%; display:grid; place-items:center; font-size:1.2rem; flex-shrink:0;
     }
-    @keyframes botPulse {
-      0%,100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),.4); }
-      50%      { box-shadow: 0 0 0 8px rgba(var(--accent-rgb),0); }
-    }
-    .tele-name {
-      font-weight: 900;
-      font-size: .95rem;
-      letter-spacing: -.3px;
-    }
-    .tele-tag {
-      font-size: .72rem;
-      color: var(--muted);
-      font-weight: 600;
-    }
+    .tele-name { font-weight:900; font-size:.9rem; }
+    .tele-tag  { font-size:.7rem; color:var(--muted); font-weight:600; }
     .tele-close {
-      margin-left: auto;
-      background: var(--surface2);
-      border: none;
-      border-radius: 8px;
-      width: 28px;
-      height: 28px;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      color: var(--muted);
-      font-size: .9rem;
-      flex-shrink: 0;
+      margin-left:auto; background:var(--surface2); border:none;
+      border-radius:8px; width:26px; height:26px; display:grid; place-items:center;
+      cursor:pointer; color:var(--muted); font-size:.85rem;
     }
-    .tele-close:hover { color: var(--text); }
-    .tele-bubble {
-      background: var(--surface2);
-      border-radius: 4px 14px 14px 14px;
-      padding: 12px 14px;
-      font-size: .88rem;
-      line-height: 1.6;
-      color: var(--text);
-      margin-bottom: 14px;
-      position: relative;
-    }
-    .tele-bubble b { color: var(--accent); }
     .tele-typing {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      padding: 10px 14px;
-      background: var(--surface2);
-      border-radius: 4px 14px 14px 14px;
-      margin-bottom: 14px;
-      width: fit-content;
+      display:flex; gap:4px; align-items:center; padding:9px 13px;
+      background:var(--surface2); border-radius:4px 13px 13px 13px;
+      margin-bottom:12px; width:fit-content;
     }
     .tele-dot {
-      width: 7px;
-      height: 7px;
-      background: var(--muted);
-      border-radius: 50%;
-      animation: typingDot 1.2s infinite;
+      width:6px; height:6px; background:var(--muted);
+      border-radius:50%; animation:typingDot 1.2s infinite;
     }
-    .tele-dot:nth-child(2) { animation-delay: .2s; }
-    .tele-dot:nth-child(3) { animation-delay: .4s; }
+    .tele-dot:nth-child(2){animation-delay:.2s;}
+    .tele-dot:nth-child(3){animation-delay:.4s;}
     @keyframes typingDot {
-      0%,60%,100% { transform: translateY(0); opacity:.4; }
-      30%          { transform: translateY(-5px); opacity:1; }
+      0%,60%,100%{transform:translateY(0);opacity:.4;}
+      30%{transform:translateY(-4px);opacity:1;}
     }
-    .tele-actions {
-      display: flex;
-      gap: 8px;
+    .tele-bubble {
+      background:var(--surface2); border-radius:4px 13px 13px 13px;
+      padding:11px 13px; font-size:.85rem; line-height:1.6;
+      color:var(--text); margin-bottom:12px;
     }
+    .tele-bubble b{color:var(--accent);}
+    .tele-actions{display:flex;gap:7px;}
     .tele-btn-primary {
-      flex: 1;
-      background: var(--accent);
-      color: var(--accent-fg);
-      border: none;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: .84rem;
-      font-weight: 800;
-      cursor: pointer;
-      font-family: var(--font);
-      transition: opacity .15s;
+      flex:1; background:var(--accent); color:var(--accent-fg); border:none;
+      border-radius:10px; padding:10px; font-size:.82rem; font-weight:800;
+      cursor:pointer; font-family:'Outfit',sans-serif; transition:opacity .15s;
     }
-    .tele-btn-primary:hover { opacity: .85; }
+    .tele-btn-primary:hover{opacity:.85;}
     .tele-btn-ghost {
-      background: var(--surface2);
-      color: var(--muted);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: .84rem;
-      font-weight: 700;
-      cursor: pointer;
-      font-family: var(--font);
-      transition: all .15s;
-      white-space: nowrap;
+      background:var(--surface2); color:var(--muted); border:1px solid var(--border);
+      border-radius:10px; padding:10px 12px; font-size:.82rem; font-weight:700;
+      cursor:pointer; font-family:'Outfit',sans-serif;
     }
-    .tele-btn-ghost:hover { color: var(--text); }
-
-    /* Minimized bubble */
     .tele-bubble-btn {
-      position: fixed;
-      bottom: 24px;
-      right: 20px;
-      width: 52px;
-      height: 52px;
-      background: var(--accent);
-      color: var(--accent-fg);
-      border: none;
-      border-radius: 50%;
-      font-size: 1.4rem;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(0,0,0,.2);
-      z-index: 999;
-      animation: botSlideUp .3s ease;
-      transition: transform .15s;
+      position:fixed; bottom:20px; right:16px; width:50px; height:50px;
+      background:var(--accent); color:var(--accent-fg); border:none; border-radius:50%;
+      font-size:1.3rem; display:grid; place-items:center; cursor:pointer;
+      box-shadow:0 4px 20px rgba(0,0,0,.2); z-index:999;
     }
-    .tele-bubble-btn:hover { transform: scale(1.1); }
   </style>
-
-  <!-- Bot card -->
   <div class="tele-bot" id="teleBotCard">
     <div class="tele-head">
       <div class="tele-avatar">🤖</div>
       <div>
         <div class="tele-name">TeLe</div>
-        <div class="tele-tag">Test lele AI Assistant</div>
+        <div class="tele-tag">Test lele Assistant</div>
       </div>
       <button class="tele-close" id="teleDismiss">✕</button>
     </div>
-
-    <!-- Typing animation shows first -->
     <div class="tele-typing" id="teleTyping">
-      <div class="tele-dot"></div>
-      <div class="tele-dot"></div>
-      <div class="tele-dot"></div>
+      <div class="tele-dot"></div><div class="tele-dot"></div><div class="tele-dot"></div>
     </div>
-
-    <!-- Message shows after delay -->
     <div class="tele-bubble" id="teleBubble" style="display:none;">
-      👋 Hi! I'm <b>TeLe</b> — your AI test assistant!<br/><br/>
-      I can turn <b>any topic</b> into a full practice test with MCQ, written questions, timer and instant scoring.<br/><br/>
-      Try me — it takes <b>under 10 seconds!</b> 🚀
+      👋 Hi! I'm <b>TeLe</b>!<br/><br/>
+      Pick a topic and question type — I'll generate a full practice test in seconds! 🚀
     </div>
-
     <div class="tele-actions" id="teleActions" style="display:none;">
-      <button class="tele-btn-primary" id="teleTryDemo">⚡ Try Demo Test</button>
+      <button class="tele-btn-primary" id="teleTryDemo">⚡ Try Demo</button>
       <button class="tele-btn-ghost" id="teleGotIt">Got it ✓</button>
     </div>
   </div>
 </div>
-
-<!-- Minimized TeLe button (shows after dismiss) -->
-<button class="tele-bubble-btn" id="teleMini" style="display:none;" title="Chat with TeLe">
-  🤖
-</button>
+<button class="tele-bubble-btn" id="teleMini" style="display:none;" title="TeLe">🤖</button>
 
 <script>
-  (function() {
-    const SEEN_KEY = "tele_welcomed";
-    const bot      = document.getElementById("teleBot");
-    const card     = document.getElementById("teleBotCard");
-    const typing   = document.getElementById("teleTyping");
-    const bubble   = document.getElementById("teleBubble");
-    const actions  = document.getElementById("teleActions");
-    const mini     = document.getElementById("teleMini");
-    const dismiss  = document.getElementById("teleDismiss");
-    const tryDemo  = document.getElementById("teleTryDemo");
-    const gotIt    = document.getElementById("teleGotIt");
+// ── Fun Facts ──
+const FUN_FACTS = {
+  default: [
+    "Testing yourself is 2x more effective for memory than re-reading your notes.",
+    "The Pomodoro technique was invented by a student using a tomato-shaped kitchen timer. 🍅",
+    "Sleep after studying helps consolidate memory. 💤",
+    "Spaced repetition can boost long-term retention by up to 200% vs cramming.",
+    "The fastest way to find knowledge gaps is to explain the topic out loud!",
+  ],
+  jee: [
+    "Newton discovered calculus while in quarantine during the 1665 plague. 🍎",
+    "Electricity travels through a wire at nearly the speed of light. ⚡",
+    "Einstein failed his university entrance exam on the first attempt. Keep going! 🧠",
+    "The concept of zero was invented in India by Brahmagupta around 628 AD.",
+    "The first IIT was established in Kharagpur in 1951, just 4 years after independence. 🇮🇳",
+  ],
+  neet: [
+    "Your body has about 37 trillion cells — more than stars in the Milky Way! 🌌",
+    "The human brain generates about 23 watts of power. 💡",
+    "DNA from a single human cell, stretched out, would be about 2 metres long. 🧬",
+    "The stomach gets a new lining every 3–4 days to avoid digesting itself. 😮",
+    "The smallest bone in your body (stapes) is smaller than a grain of rice.",
+  ],
+  cbse: [
+    "Srinivasa Ramanujan never had a formal maths degree yet contributed 3,900+ formulas. 🧮",
+    "The Indian constitution is the longest constitution of any country in the world.",
+    "Aryabhata accurately calculated the Earth's circumference in 476 CE.",
+    "India has the world's largest youth population — over 600 million under 25. 🇮🇳",
+  ],
+  python: [
+    "Python was named after Monty Python's Flying Circus, not the snake! 🐍",
+    "Instagram, YouTube and Spotify all use Python in their backends. 🎵",
+    "Guido van Rossum created Python during Christmas holidays in 1989. 🎄",
+    "Python is the most popular programming language in the world as of 2024.",
+  ],
+};
 
-    // Only show once per browser
-    if (localStorage.getItem(SEEN_KEY)) {
-      // show mini button instead
-      mini.style.display = "grid";
-      return;
-    }
+function getFunFacts(topic) {
+  const t = (topic || '').toLowerCase();
+  if (t.includes('jee') || t.includes('physics') || t.includes('maths')) return FUN_FACTS.jee;
+  if (t.includes('neet') || t.includes('biology') || t.includes('bio')) return FUN_FACTS.neet;
+  if (t.includes('cbse') || t.includes('class') || t.includes('history')) return FUN_FACTS.cbse;
+  if (t.includes('python') || t.includes('programming')) return FUN_FACTS.python;
+  return FUN_FACTS.default;
+}
 
-    // Show bot after 1.5s delay
+let factInterval = null;
+
+function startFunFacts(topic) {
+  const facts = getFunFacts(topic);
+  let i = Math.floor(Math.random() * facts.length);
+  document.getElementById('funfactText').textContent = facts[i];
+  factInterval = setInterval(() => {
+    i = (i + 1) % facts.length;
+    const card = document.getElementById('funfactCard');
+    card.style.animation = 'none';
+    card.offsetHeight;
+    card.style.animation = 'factSlide .5s cubic-bezier(.16,1,.3,1)';
+    document.getElementById('funfactText').textContent = facts[i];
+  }, 4000);
+}
+
+function stopFunFacts() {
+  if (factInterval) { clearInterval(factInterval); factInterval = null; }
+}
+
+function showLoading(topic) {
+  startFunFacts(topic);
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+
+function hideLoading() {
+  stopFunFacts();
+  document.getElementById('loadingOverlay').classList.remove('active');
+}
+
+// ── Presets ──
+const PRESETS = {
+  neet:  { topic: "NEET Biology – Cell Structure and Function", num_questions: 45, timer_minutes: 60, difficulty: "mixed", exam_mode: "exam" },
+  jee:   { topic: "JEE Physics – Current Electricity",         num_questions: 25, timer_minutes: 60, difficulty: "hard",  exam_mode: "exam" },
+  cbse:  { topic: "Class 10 Science – Acids Bases and Salts",  num_questions: 30, timer_minutes: 120, difficulty: "medium", exam_mode: "practice" },
+  quick: { topic: "",                                           num_questions: 10, timer_minutes: 15, difficulty: "easy",  exam_mode: "practice" },
+};
+
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const p = PRESETS[btn.dataset.preset];
+    if (p.topic) document.getElementById("topicInput").value = p.topic;
+    document.querySelector("[name=num_questions]").value  = p.num_questions;
+    document.querySelector("[name=timer_minutes]").value  = p.timer_minutes;
+    document.querySelector("[name=difficulty]").value     = p.difficulty;
+    document.querySelector("[name=exam_mode]").value      = p.exam_mode;
+    document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!p.topic) document.getElementById("topicInput").focus();
+  });
+});
+
+// ── Question Type Selector ──
+let selectedQType = "mcq";
+document.querySelectorAll(".qtype-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    selectedQType = btn.dataset.qtype;
+    document.querySelectorAll(".qtype-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  });
+});
+
+// ── Demo chips ──
+document.querySelectorAll(".demo-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    document.getElementById("topicInput").value = chip.dataset.topic;
+    document.querySelectorAll(".demo-chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+});
+
+// ── Form Submit ──
+document.getElementById("mainForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById("generateBtn");
+  btn.disabled = true;
+  btn.textContent = "⚡ Generating...";
+
+  const topic        = document.getElementById("topicInput").value.trim() || "General Knowledge";
+  const activePreset = document.querySelector(".preset-btn.active")?.dataset.preset || "quick";
+  const formatMap    = { neet: "NEET", jee: "JEE", cbse: "CBSE", quick: "Quick Test" };
+  const examFormat   = formatMap[activePreset] || "CBSE";
+  const numQ         = parseInt(document.querySelector("[name=num_questions]").value) || 10;
+  const difficulty   = document.querySelector("[name=difficulty]").value || "medium";
+  const timerMinutes = parseInt(document.querySelector("[name=timer_minutes]").value) || 0;
+  const mode         = document.querySelector("[name=exam_mode]").value || "practice";
+
+  showLoading(topic);
+
+  try {
+    const res = await fetch("/api/generate-questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic,
+        exam_format:   examFormat,
+        num_questions: numQ,
+        difficulty,
+        timer_minutes: timerMinutes,
+        question_type: selectedQType,
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "AI generation failed");
+
+    const storeRes = await fetch("/api/store-exam", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic,
+        questions:     data.questions,
+        timer_minutes: timerMinutes,
+        difficulty,
+        mode,
+        exam_format:   examFormat,
+        question_type: selectedQType,
+      })
+    });
+    const stored = await storeRes.json();
+    window.location.href = `/exam/${stored.exam_id}`;
+
+  } catch(err) {
+    hideLoading();
+    btn.disabled = false;
+    btn.textContent = "⚡ Generate Test";
+    alert("Error: " + err.message);
+  }
+});
+
+// ── Waitlist Modal ──
+const wlModal = document.getElementById("wlModal");
+document.getElementById("waitlistBtn")?.addEventListener("click",  () => wlModal.style.display = "grid");
+document.getElementById("waitlistBtn2")?.addEventListener("click", () => wlModal.style.display = "grid");
+document.getElementById("wlClose")?.addEventListener("click",      () => wlModal.style.display = "none");
+wlModal?.addEventListener("click", e => { if (e.target === wlModal) wlModal.style.display = "none"; });
+document.getElementById("wlForm")?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = e.target.querySelector("button[type=submit]");
+  btn.disabled = true; btn.textContent = "Submitting...";
+  try {
+    const res = await fetch(e.target.action, { method:"POST", body:new FormData(e.target), headers:{"Accept":"application/json"} });
+    if (res.ok) {
+      document.getElementById("wlForm").style.display = "none";
+      document.getElementById("wlSuccess").style.display = "block";
+      setTimeout(() => { wlModal.style.display = "none"; }, 3000);
+    } else { btn.disabled = false; btn.textContent = "Try again →"; }
+  } catch { btn.disabled = false; btn.textContent = "Try again →"; }
+});
+
+// ── TeLe Bot ──
+(function() {
+  const SEEN    = "tele_welcomed";
+  const bot     = document.getElementById("teleBot");
+  const card    = document.getElementById("teleBotCard");
+  const typing  = document.getElementById("teleTyping");
+  const bubble  = document.getElementById("teleBubble");
+  const actions = document.getElementById("teleActions");
+  const mini    = document.getElementById("teleMini");
+
+  if (localStorage.getItem(SEEN)) { mini.style.display = "grid"; return; }
+
+  setTimeout(() => {
+    bot.style.display = "block";
     setTimeout(() => {
-      bot.style.display = "block";
-
-      // After 1.5s typing animation → show message
-      setTimeout(() => {
-        typing.style.display = "none";
-        bubble.style.display = "block";
-        actions.style.display = "flex";
-      }, 1500);
-    }, 1500);
-
-    // Dismiss → show mini button
-    function dismissBot() {
-      card.style.animation = "none";
-      card.style.opacity = "0";
-      card.style.transform = "translateY(20px)";
-      card.style.transition = "all .25s";
-      setTimeout(() => {
-        bot.style.display = "none";
-        mini.style.display = "grid";
-        localStorage.setItem(SEEN_KEY, "1");
-      }, 250);
-    }
-
-    dismiss.addEventListener("click", dismissBot);
-    gotIt.addEventListener("click", dismissBot);
-
-    // Try demo → fill JEE preset and scroll to form
-    tryDemo.addEventListener("click", () => {
-      document.getElementById("topicInput").value = "JEE Physics – Current Electricity";
-      document.querySelector("[name=num_questions]").value = 10;
-      document.querySelector("[name=timer_minutes]").value = 15;
-      document.querySelector("[name=difficulty]").value = "medium";
-      document.querySelector("[name=question_type]").value = "mcq";
-      document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
-      dismissBot();
-    });
-
-    // Mini button → show bot again
-    mini.addEventListener("click", () => {
-      mini.style.display = "none";
-      bot.style.display = "block";
-      typing.style.display = "none";
-      bubble.style.display = "block";
+      typing.style.display  = "none";
+      bubble.style.display  = "block";
       actions.style.display = "flex";
-      card.style.opacity = "1";
-      card.style.transform = "none";
-    });
-  })();
+    }, 1500);
+  }, 1500);
+
+  function dismissBot() {
+    card.style.opacity    = "0";
+    card.style.transform  = "translateY(16px)";
+    card.style.transition = "all .25s";
+    setTimeout(() => {
+      bot.style.display  = "none";
+      mini.style.display = "grid";
+      localStorage.setItem(SEEN, "1");
+    }, 250);
+  }
+
+  document.getElementById("teleDismiss").addEventListener("click", dismissBot);
+  document.getElementById("teleGotIt").addEventListener("click",   dismissBot);
+  document.getElementById("teleTryDemo").addEventListener("click", () => {
+    document.getElementById("topicInput").value           = "JEE Physics – Current Electricity";
+    document.querySelector("[name=num_questions]").value  = 10;
+    document.querySelector("[name=timer_minutes]").value  = 15;
+    document.getElementById("topicInput").scrollIntoView({ behavior: "smooth", block: "center" });
+    dismissBot();
+  });
+  mini.addEventListener("click", () => {
+    mini.style.display    = "none";
+    bot.style.display     = "block";
+    typing.style.display  = "none";
+    bubble.style.display  = "block";
+    actions.style.display = "flex";
+    card.style.opacity    = "1";
+    card.style.transform  = "none";
+  });
+})();
 </script>
+<script src="/static/app.js"></script>
 </body>
 </html>

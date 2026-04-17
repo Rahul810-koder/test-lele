@@ -9,10 +9,17 @@ let TIME_OVER_AUTO = false;
 let SLIDE_MODE = false;
 let SLIDE_CURRENT = 1;
 
+// Per-question timer
+let Q_TIME_LEFT = {};
+let Q_TIMER_IDS = {};
+let Q_SUBMITTED = {};
+
 // Track time per question
-let Q_START_TIMES = {};   // { qid: timestamp when first interacted }
-let Q_TIME_SPENT = {};    // { qid: seconds spent }
+let Q_START_TIMES = {};
+let Q_TIME_SPENT = {};
 let EXAM_START_TIME = null;
+
+let PER_Q_SECONDS = 0;
 
 // -- Theme --
 function applyTheme(t) {
@@ -24,7 +31,7 @@ function toggleTheme() {
   applyTheme(cur === "dark" ? "light" : "dark");
 }
 
-// -- Timer --
+// -- Timer (global) --
 function fmtTime(sec) {
   const m = String(Math.floor(sec / 60)).padStart(2, "0");
   const s = String(sec % 60).padStart(2, "0");
@@ -60,11 +67,103 @@ function startTimer(seconds) {
   }, 1000);
 }
 
-// -- Lock --
+// -- Per-question timer --
+function startQuestionTimer(qid, seconds) {
+  if (Q_TIMER_IDS[qid]) {
+    clearInterval(Q_TIMER_IDS[qid]);
+    Q_TIMER_IDS[qid] = null;
+  }
+  Q_TIME_LEFT[qid] = seconds;
+
+  const pill = document.querySelector(`.q-timer-pill[data-qid="${qid}"]`);
+  if (pill) pill.textContent = `⏱ ${fmtTime(seconds)}`;
+
+  Q_TIMER_IDS[qid] = setInterval(() => {
+    Q_TIME_LEFT[qid]--;
+    const left = Q_TIME_LEFT[qid];
+    if (pill) {
+      pill.textContent = `⏱ ${fmtTime(left)}`;
+      if (left <= 10) pill.style.color = "var(--danger, #e53)";
+    }
+    if (left <= 0) {
+      clearInterval(Q_TIMER_IDS[qid]);
+      Q_TIMER_IDS[qid] = null;
+      lockQuestion(qid);
+      moveToNextQuestion(qid);
+    }
+  }, 1000);
+}
+
+function stopQuestionTimer(qid) {
+  if (Q_TIMER_IDS[qid]) {
+    clearInterval(Q_TIMER_IDS[qid]);
+    Q_TIMER_IDS[qid] = null;
+  }
+}
+
+function lockQuestion(qid) {
+  Q_SUBMITTED[qid] = true;
+  const card = document.querySelector(`.q-card[data-qid="${qid}"]`);
+  if (!card) return;
+
+  card.querySelectorAll("input, textarea").forEach(el => el.disabled = true);
+  card.classList.add("locked");
+
+  const submitBtn = card.querySelector(".q-submit-btn");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitted ✓";
+    submitBtn.style.background = "var(--success, #2a7)";
+  }
+
+  stopQuestionTimer(qid);
+
+  const meta = EXAM?.meta || {};
+  if (meta.mode === "practice" && meta.include_answers) {
+    const q = EXAM.questions[parseInt(qid) - 1];
+    if (q && q.type === "mcq") {
+      const existing = card.querySelector(".key-box");
+      if (!existing) {
+        const box = document.createElement("div");
+        box.className = "key-box";
+        box.style.marginTop = "10px";
+        const correctOpt = (q.options || []).find(o => o.key === q.answer);
+        box.innerHTML = `<b>Answer:</b> ${q.answer}${correctOpt ? " — " + correctOpt.text : ""}<br/><b>Explanation:</b> ${q.explain || "—"}`;
+        card.appendChild(box);
+      }
+    }
+  }
+}
+
+function moveToNextQuestion(qid) {
+  if (!EXAM) return;
+  const current = parseInt(qid);
+  const total = EXAM.questions.length;
+
+  if (current < total) {
+    const nextQid = String(current + 1);
+    const nextCard = document.querySelector(`.q-card[data-qid="${nextQid}"]`);
+    if (nextCard) {
+      nextCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    if (PER_Q_SECONDS > 0 && !Q_SUBMITTED[nextQid]) {
+      startQuestionTimer(nextQid, PER_Q_SECONDS);
+    }
+    if (SLIDE_MODE) goSlide(current + 1);
+  } else {
+    const submitBtn = $("submitBtn");
+    if (submitBtn) {
+      submitBtn.style.animation = "pulse 1s infinite";
+      submitBtn.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+}
+
+// -- Lock all --
 function setLocked(on) {
   LOCKED = on;
   document.querySelectorAll("input, textarea").forEach(el => {
-    if (!["themeBtn","printBtn","timeOverOk","submitBtn"].includes(el.id)) {
+    if (!["themeBtn", "printBtn", "timeOverOk", "submitBtn"].includes(el.id)) {
       el.disabled = on;
     }
   });
@@ -117,8 +216,11 @@ function recordQuestionBlur(qid) {
   Q_START_TIMES[qid] = null;
 }
 
+function trackQuestionFocus(qid) {
+  recordQuestionFocus(qid);
+}
+
 function finalizeAllTimes() {
-  // flush any still-focused questions
   Object.keys(Q_START_TIMES).forEach(qid => {
     if (Q_START_TIMES[qid]) recordQuestionBlur(qid);
   });
@@ -127,7 +229,7 @@ function finalizeAllTimes() {
 function fmtSpent(sec) {
   if (!sec || sec < 1) return "< 1s";
   if (sec < 60) return `${sec}s`;
-  return `${Math.floor(sec/60)}m ${sec%60}s`;
+  return `${Math.floor(sec / 60)}m ${sec % 60}s`;
 }
 
 // -- Collect answers --
@@ -145,13 +247,13 @@ function collectAnswers() {
   });
   return answers;
 }
+
 // -- Slide Mode --
 function initSlideMode() {
   const paper = $("paper");
   const btn = $("slideModeBtn");
   if (!paper || !btn) return;
 
-  // Insert progress bar and nav into DOM
   const progressBar = document.createElement("div");
   progressBar.className = "slide-progress-bar";
   progressBar.id = "slideProgressBar";
@@ -182,7 +284,6 @@ function initSlideMode() {
       paper.classList.remove("slide-mode");
       btn.classList.remove("slide-mode-active-btn");
       btn.textContent = "▦ Slide";
-      // Show all cards again
       document.querySelectorAll(".q-card").forEach(c => {
         c.classList.remove("slide-active");
       });
@@ -194,24 +295,18 @@ function goSlide(n) {
   if (!EXAM) return;
   const total = EXAM.questions.length;
   SLIDE_CURRENT = Math.max(1, Math.min(n, total));
-
-  // Track time
   trackQuestionFocus(String(SLIDE_CURRENT));
 
-  // Show only current card
   document.querySelectorAll(".q-card").forEach((card, i) => {
     card.classList.toggle("slide-active", i + 1 === SLIDE_CURRENT);
   });
 
-  // Update counter
   const counter = $("slideCounter");
   if (counter) counter.textContent = `${SLIDE_CURRENT} / ${total}`;
 
-  // Update progress bar
   const fill = $("slideProgressFill");
   if (fill) fill.style.width = `${(SLIDE_CURRENT / total) * 100}%`;
 
-  // Update prev/next buttons
   const prev = $("slidePrev");
   const next = $("slideNext");
   if (prev) prev.disabled = SLIDE_CURRENT === 1;
@@ -221,9 +316,7 @@ function goSlide(n) {
       next.style.background = "var(--accent)";
       next.style.color = "var(--accent-fg)";
       next.style.borderColor = "var(--accent)";
-      next.onclick = () => {
-        if (!LOCKED) submitExam(false);
-      };
+      next.onclick = () => { if (!LOCKED) submitExam(false); };
     } else {
       next.innerHTML = "Next →";
       next.style.background = "";
@@ -243,13 +336,18 @@ function renderExam(exam) {
   $("paperTitle").textContent = exam.title || "Test Paper";
   const meta = exam.meta || {};
   $("paperMeta").textContent = [
+    meta.exam_format || "",
     meta.mode || "practice",
     meta.difficulty || "",
-    meta.qtype || ""
   ].filter(Boolean).join(" · ");
   $("paperInfo").textContent = meta.mode === "exam"
     ? "Exam Mode — answers shown after submission."
     : "Practice Mode — reveal answers anytime.";
+
+  const totalMinutes = Number(meta.timer_minutes || 0);
+  if (totalMinutes > 0 && exam.questions.length > 0) {
+    PER_Q_SECONDS = Math.floor((totalMinutes * 60) / exam.questions.length);
+  }
 
   const wrap = $("paper");
   wrap.innerHTML = "";
@@ -258,142 +356,100 @@ function renderExam(exam) {
     const idx = i + 1;
     const qid = String(idx);
 
-    const diffMatch = q.q.match(/\[(EASY|MEDIUM|HARD)\]/i);
-    const diff = diffMatch ? diffMatch[1].toLowerCase() : "medium";
+    // Clean question text
     const cleanQ = q.q.replace(/\[(EASY|MEDIUM|HARD)\]\s*/i, "").trim();
 
     const card = document.createElement("div");
     card.className = "q-card";
     card.dataset.qid = qid;
 
-    // Track time when card is clicked/focused
     card.addEventListener("mouseenter", () => recordQuestionFocus(qid));
     card.addEventListener("mouseleave", () => recordQuestionBlur(qid));
-    card.addEventListener("focusin",    () => recordQuestionFocus(qid));
-    card.addEventListener("focusout",   () => recordQuestionBlur(qid));
+    card.addEventListener("focusin", () => recordQuestionFocus(qid));
+    card.addEventListener("focusout", () => recordQuestionBlur(qid));
+
+    const timerPillHtml = PER_Q_SECONDS > 0
+      ? `<span class="q-timer-pill" data-qid="${qid}">⏱ ${fmtTime(PER_Q_SECONDS)}</span>`
+      : "";
 
     card.innerHTML = `
       <div class="q-head">
         <div class="q-meta">
-          <span class="q-num">Q${idx} · ${q.type.toUpperCase()}</span>
-          <span class="q-diff ${diff}">${diff.charAt(0).toUpperCase() + diff.slice(1)}</span>
+          <span class="q-num">Q${idx} · MCQ</span>
+          ${timerPillHtml}
         </div>
-        <span class="q-marks">${q.type === "mcq" ? "1 mark" : `${q.marks || 3} marks`}</span>
+        <span class="q-marks">1 mark</span>
       </div>
       <div class="q-text">${cleanQ}</div>
     `;
 
-    if (q.type === "mcq") {
-      (q.options || []).forEach(opt => {
+    // --- OPTIONS RENDERING (the key fix) ---
+    const options = q.options;
+
+    if (!options || options.length === 0) {
+      // Fallback: show error state for this question
+      const err = document.createElement("div");
+      err.style.cssText = "color:var(--muted);font-size:.85rem;padding:10px 0;";
+      err.textContent = "⚠️ Options failed to load for this question.";
+      card.appendChild(err);
+    } else {
+      options.forEach(opt => {
+        if (!opt || !opt.text || !String(opt.text).trim()) return;
+
         const label = document.createElement("label");
         label.className = "opt";
-        label.innerHTML = `
-          <input type="radio" name="q_${qid}" value="${opt.key}">
-          <span><b>${opt.key}.</b> ${opt.text}</span>
-        `;
-        label.querySelector("input").addEventListener("change", updateProgress);
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = `q_${qid}`;
+        input.value = opt.key;
+
+        const span = document.createElement("span");
+        span.innerHTML = `<b>${opt.key}.</b> ${opt.text}`;
+
+        input.addEventListener("change", updateProgress);
+        label.appendChild(input);
+        label.appendChild(span);
         card.appendChild(label);
       });
+    }
 
-      if (meta.mode === "practice" && meta.include_answers) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "reveal-btn";
-        btn.innerHTML = "👁 Reveal Answer";
-        btn.addEventListener("click", () => {
-          const box = document.createElement("div");
-          box.className = "key-box";
-          box.innerHTML = `<b>Answer:</b> ${q.answer}<br/><b>Explanation:</b> ${q.explain || "—"}`;
-          btn.replaceWith(box);
-        });
-        card.appendChild(btn);
-      }
+    // Per-question Submit button
+    const qSubmitBtn = document.createElement("button");
+    qSubmitBtn.type = "button";
+    qSubmitBtn.className = "q-submit-btn";
+    qSubmitBtn.dataset.qid = qid;
+    qSubmitBtn.textContent = idx < exam.questions.length ? "Submit & Next →" : "Submit Answer ✓";
+    qSubmitBtn.addEventListener("click", () => {
+      if (Q_SUBMITTED[qid]) return;
+      lockQuestion(qid);
+      moveToNextQuestion(qid);
+    });
+    card.appendChild(qSubmitBtn);
 
-    } else {
-      const tabs = document.createElement("div");
-      tabs.className = "answer-tabs";
-      tabs.innerHTML = `
-        <button type="button" class="answer-tab active" data-tab="type">✏️ Type</button>
-        <button type="button" class="answer-tab" data-tab="photo">📷 Upload Photo</button>
-      `;
-      card.appendChild(tabs);
-
-      const typePanel = document.createElement("div");
-      typePanel.dataset.panel = "type";
-      const ta = document.createElement("textarea");
-      ta.className = "answer-box";
-      ta.name = `q_${qid}`;
-      ta.placeholder = "Write your answer here…";
-      ta.addEventListener("input", updateProgress);
-      typePanel.appendChild(ta);
-      card.appendChild(typePanel);
-
-      const photoPanel = document.createElement("div");
-      photoPanel.dataset.panel = "photo";
-      photoPanel.style.display = "none";
-      photoPanel.innerHTML = `
-        <div class="photo-area" id="photoArea_${qid}">
-          <label class="photo-label" for="photoInput_${qid}">
-            <span class="ico">📷</span>
-            <span>Click to upload your handwritten answer</span>
-            <span style="font-size:.75rem;margin-top:2px;">JPG, PNG supported</span>
-          </label>
-          <input type="file" id="photoInput_${qid}" accept="image/*" multiple>
-          <div class="photo-preview" id="photoPreview_${qid}"></div>
-        </div>
-      `;
-      card.appendChild(photoPanel);
-
-      tabs.querySelectorAll(".answer-tab").forEach(tab => {
-        tab.addEventListener("click", () => {
-          tabs.querySelectorAll(".answer-tab").forEach(t => t.classList.remove("active"));
-          tab.classList.add("active");
-          const target = tab.dataset.tab;
-          typePanel.style.display = target === "type" ? "" : "none";
-          photoPanel.style.display = target === "photo" ? "" : "none";
-        });
+    if (meta.mode === "practice" && meta.include_answers && PER_Q_SECONDS === 0) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "reveal-btn";
+      btn.innerHTML = "👁 Reveal Answer";
+      btn.addEventListener("click", () => {
+        const correctOpt = (options || []).find(o => o.key === q.answer);
+        const box = document.createElement("div");
+        box.className = "key-box";
+        box.innerHTML = `<b>Answer:</b> ${q.answer}${correctOpt ? " — " + correctOpt.text : ""}<br/><b>Explanation:</b> ${q.explain || "—"}`;
+        btn.replaceWith(box);
       });
-
-      photoPanel.querySelector(`#photoInput_${qid}`).addEventListener("change", (e) => {
-        const files = Array.from(e.target.files);
-        if (!window._photos[qid]) window._photos[qid] = [];
-        files.forEach(file => {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            window._photos[qid].push(ev.target.result);
-            renderPhotoPreview(qid);
-            updateProgress();
-          };
-          reader.readAsDataURL(file);
-        });
-        e.target.value = "";
-      });
-
-      if (meta.mode === "practice" && meta.include_answers) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "reveal-btn";
-        btn.innerHTML = "👁 Reveal Model Answer";
-        btn.addEventListener("click", () => {
-          const kp = (q.key_points || []).map(x => `<li>${x}</li>`).join("");
-          const box = document.createElement("div");
-          box.className = "key-box";
-          box.innerHTML = `<b>Model:</b> ${q.model || "—"}<br/><b>Key Points:</b><ul>${kp}</ul>`;
-          btn.replaceWith(box);
-        });
-        card.appendChild(btn);
-      }
+      card.appendChild(btn);
     }
 
     wrap.appendChild(card);
   });
 
-  const tmin = Number(meta.timer_minutes || 0);
-  if (tmin > 0) startTimer(tmin * 60);
+  if (totalMinutes > 0) startTimer(totalMinutes * 60);
+  if (PER_Q_SECONDS > 0) startQuestionTimer("1", PER_Q_SECONDS);
 
   document.addEventListener("change", updateProgress);
   updateProgress();
-  // Init slide mode after questions are rendered
   initSlideMode();
 }
 
@@ -403,7 +459,7 @@ function renderPhotoPreview(qid) {
   const photos = window._photos[qid] || [];
   preview.innerHTML = photos.map((src, i) => `
     <div class="photo-thumb">
-      <img src="${src}" alt="Answer photo ${i+1}">
+      <img src="${src}" alt="Answer photo ${i + 1}">
       <button class="rm-photo" data-qid="${qid}" data-idx="${i}" title="Remove">✕</button>
     </div>
   `).join("");
@@ -419,12 +475,13 @@ function renderPhotoPreview(qid) {
   });
 }
 
-// -- Submit --
+// -- Submit all --
 async function submitExam(time_over = false) {
   if (!EXAM) return;
   if (LOCKED && !time_over) return;
 
-  finalizeAllTimes(); // ⭐ lock in all question times
+  Object.keys(Q_TIMER_IDS).forEach(qid => stopQuestionTimer(qid));
+  finalizeAllTimes();
   stopTimer();
   setLocked(true);
 
@@ -463,8 +520,8 @@ function buildShareText(res) {
 
 function showShareButtons(res) {
   const text = encodeURIComponent(buildShareText(res));
-  const wa  = `https://wa.me/?text=${text}`;
-  const tw  = `https://twitter.com/intent/tweet?text=${text}`;
+  const wa = `https://wa.me/?text=${text}`;
+  const tw = `https://twitter.com/intent/tweet?text=${text}`;
 
   const div = document.createElement("div");
   div.className = "share-row";
@@ -494,11 +551,11 @@ function buildTimeTable() {
     const qid = String(i + 1);
     const sec = Q_TIME_SPENT[qid] || 0;
     const pct = totalSec > 0 ? Math.round((sec / totalSec) * 100) : 0;
-    const bar = `<div class="time-bar-wrap"><div class="time-bar" style="width:${Math.min(pct,100)}%"></div></div>`;
+    const bar = `<div class="time-bar-wrap"><div class="time-bar" style="width:${Math.min(pct, 100)}%"></div></div>`;
     return `
       <tr>
         <td class="tc-q">Q${qid}</td>
-        <td class="tc-type">${q.type.toUpperCase()}</td>
+        <td class="tc-type">MCQ</td>
         <td class="tc-time">${fmtSpent(sec)}</td>
         <td class="tc-bar">${bar}</td>
       </tr>
@@ -515,9 +572,7 @@ function buildTimeTable() {
       </p>
       <table class="time-table">
         <thead>
-          <tr>
-            <th>Q#</th><th>Type</th><th>Time</th><th>Proportion</th>
-          </tr>
+          <tr><th>Q#</th><th>Type</th><th>Time</th><th>Proportion</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
@@ -532,7 +587,7 @@ function showResult(res) {
   box.className = "result-card";
 
   const miss = (res.missing_points || []).map(x => `<li>${x}</li>`).join("");
-  const rev  = (res.suggested_revision || []).map(x => `<li>${x}</li>`).join("");
+  const rev = (res.suggested_revision || []).map(x => `<li>${x}</li>`).join("");
 
   box.innerHTML = `
     <div class="result-score">${res.percentage}%</div>
@@ -540,8 +595,8 @@ function showResult(res) {
     <div class="result-feedback">${res.feedback}</div>
     <hr/>
     <div class="result-section">
-      <h3>Missing Points</h3>
-      <ul>${miss || "<li>None — great job!</li>"}</ul>
+      <h3>Missed Questions</h3>
+      <ul>${miss || "<li>None — perfect score! 🎉</li>"}</ul>
     </div>
     <div class="result-section">
       <h3>Suggested Revision</h3>
@@ -549,15 +604,12 @@ function showResult(res) {
     </div>
   `;
 
-  // ⭐ Time per question table
   const timeTable = buildTimeTable();
   if (timeTable) box.appendChild(timeTable);
 
-  // ⭐ Share buttons
   const shareDiv = showShareButtons(res);
   box.appendChild(shareDiv);
 
-  // Copy link button
   box.querySelector("#copyShareBtn")?.addEventListener("click", () => {
     const txt = buildShareText(res);
     navigator.clipboard.writeText(txt).then(() => {
@@ -567,20 +619,18 @@ function showResult(res) {
     });
   });
 
-  // Show answer keys
   if (res.answer_key) {
     Object.keys(res.answer_key).forEach(qid => {
       const key = res.answer_key[qid];
       const card = document.querySelector(`.q-card[data-qid="${qid}"]`);
       if (!card) return;
+      const existing = card.querySelector(".key-box");
+      if (existing) return;
       const div = document.createElement("div");
       div.className = "key-box";
       div.style.marginTop = "12px";
       if (key.type === "mcq") {
         div.innerHTML = `<b>Answer:</b> ${key.answer}<br/><b>Explanation:</b> ${key.explain || "—"}`;
-      } else {
-        const kp = (key.key_points || []).map(x => `<li>${x}</li>`).join("");
-        div.innerHTML = `<b>Model:</b> ${key.model || "—"}<br/><b>Key Points:</b><ul>${kp}</ul>`;
       }
       card.appendChild(div);
     });
@@ -588,7 +638,6 @@ function showResult(res) {
 
   box.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  // Waitlist popup after 4s
   setTimeout(() => {
     const modal = document.getElementById("wlModal");
     if (modal && !sessionStorage.getItem("wl_shown")) {
@@ -598,14 +647,37 @@ function showResult(res) {
   }, 4000);
 }
 
+// -- Load exam --
 async function loadExam() {
+  const status = $("submitStatus");
+
   try {
     const r = await fetch(`/api/exam/${examId}`);
     const data = await r.json();
-    if (data.error) { $("submitStatus").textContent = data.error; return; }
+
+    if (data.error) {
+      status.textContent = "❌ " + data.error;
+      return;
+    }
+
+    if (!data.questions || data.questions.length === 0) {
+      status.textContent = "❌ No questions found. Go back and try again.";
+      $("paperTitle").textContent = "Error";
+      return;
+    }
+
+    // Validate options exist on at least first question
+    const firstQ = data.questions[0];
+    if (!firstQ.options || firstQ.options.length === 0) {
+      status.textContent = "❌ Questions loaded but options are missing. Please regenerate.";
+      return;
+    }
+
     renderExam(data);
-  } catch {
-    $("submitStatus").textContent = "Failed to load exam.";
+
+  } catch (e) {
+    if (status) status.textContent = "❌ Failed to load exam. Please go back and try again.";
+    console.error("loadExam error:", e);
   }
 }
 
