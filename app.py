@@ -555,14 +555,14 @@ async def api_submit_exam(exam_id: str, request: Request):
                     q.get("answer", "?")
                 )
                 missing_points.append(
-                    f"Q{idx}: Correct answer was {q.get('answer')} — {correct_opt}"
+                    f"Q{idx}: Correct answer was {q.get('answer')}-{correct_opt}"
                 )
 
     percent = 0.0 if total_marks == 0 else round((got_marks / total_marks) * 100, 2)
     grade   = grade_from_percent(percent)
 
     if percent < 50:
-        feedback_lines.append("Focus on core concepts — revise this chapter thoroughly.")
+        feedback_lines.append("Focus on core concepts-revise this chapter thoroughly.")
     elif percent < 70:
         feedback_lines.append("Good start! Work on accuracy and cover all key points.")
     elif percent < 90:
@@ -571,7 +571,7 @@ async def api_submit_exam(exam_id: str, request: Request):
         feedback_lines.append("Excellent performance! You've got this chapter down.")
 
     if time_over:
-        feedback_lines.append("Time ran out — answers were auto-submitted.")
+        feedback_lines.append("Time ran out-answers were auto-submitted.")
 
     result = {
         "score":              f"{round(got_marks, 2)}/{round(total_marks, 2)}",
