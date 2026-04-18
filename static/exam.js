@@ -1,4 +1,4 @@
-// ===== Test lele — exam.js =====
+// ===== Test lele — exam.js (NTA-style) =====
 const examId = (window.location.pathname.split("/").filter(Boolean).pop() || "").trim();
 const $ = (id) => document.getElementById(id);
 
@@ -6,22 +6,16 @@ let EXAM = null;
 let LOCKED = false;
 let TIMER_ID = null;
 let TIME_OVER_AUTO = false;
-let SLIDE_MODE = false;
-let SLIDE_CURRENT = 1;
+let CURRENT_Q = 1;  // 1-indexed
 
-// Per-question timer
-let Q_TIME_LEFT = {};
-let Q_TIMER_IDS = {};
-let Q_SUBMITTED = {};
-
-// Track time per question
+// State per question
+let ANSWERS  = {};   // { "1": "A", "2": "B", ... } for MCQ; text for written
+let MARKED   = {};   // { "1": true, ... }
 let Q_START_TIMES = {};
-let Q_TIME_SPENT = {};
+let Q_TIME_SPENT  = {};
 let EXAM_START_TIME = null;
 
-let PER_Q_SECONDS = 0;
-
-// -- Theme --
+// ── Theme ──
 function applyTheme(t) {
   document.documentElement.setAttribute("data-theme", t);
   localStorage.setItem("theme", t);
@@ -31,7 +25,7 @@ function toggleTheme() {
   applyTheme(cur === "dark" ? "light" : "dark");
 }
 
-// -- Timer (global) --
+// ── Timer (global) ──
 function fmtTime(sec) {
   const m = String(Math.floor(sec / 60)).padStart(2, "0");
   const s = String(sec % 60).padStart(2, "0");
@@ -52,8 +46,8 @@ function startTimer(seconds) {
   TIMER_ID = setInterval(async () => {
     left--;
     const pill = $("timerPill");
-    if (left <= 60) pill.className = "pill danger";
-    else if (left <= 120) pill.className = "pill warn";
+    if (left <= 60)       { pill.className = "nta-timer-pill danger"; }
+    else if (left <= 120) { pill.className = "nta-timer-pill warn"; }
     if (left <= 0) {
       stopTimer();
       pill.textContent = "⏱ 00:00";
@@ -67,427 +61,246 @@ function startTimer(seconds) {
   }, 1000);
 }
 
-// -- Per-question timer --
-function startQuestionTimer(qid, seconds) {
-  if (Q_TIMER_IDS[qid]) {
-    clearInterval(Q_TIMER_IDS[qid]);
-    Q_TIMER_IDS[qid] = null;
-  }
-  Q_TIME_LEFT[qid] = seconds;
-
-  const pill = document.querySelector(`.q-timer-pill[data-qid="${qid}"]`);
-  if (pill) pill.textContent = `⏱ ${fmtTime(seconds)}`;
-
-  Q_TIMER_IDS[qid] = setInterval(() => {
-    Q_TIME_LEFT[qid]--;
-    const left = Q_TIME_LEFT[qid];
-    if (pill) {
-      pill.textContent = `⏱ ${fmtTime(left)}`;
-      if (left <= 10) pill.style.color = "var(--danger, #e53)";
-    }
-    if (left <= 0) {
-      clearInterval(Q_TIMER_IDS[qid]);
-      Q_TIMER_IDS[qid] = null;
-      lockQuestion(qid);
-      moveToNextQuestion(qid);
-    }
-  }, 1000);
-}
-
-function stopQuestionTimer(qid) {
-  if (Q_TIMER_IDS[qid]) {
-    clearInterval(Q_TIMER_IDS[qid]);
-    Q_TIMER_IDS[qid] = null;
-  }
-}
-
-function lockQuestion(qid) {
-  Q_SUBMITTED[qid] = true;
-  const card = document.querySelector(`.q-card[data-qid="${qid}"]`);
-  if (!card) return;
-
-  card.querySelectorAll("input, textarea").forEach(el => el.disabled = true);
-  card.classList.add("locked");
-
-  const submitBtn = card.querySelector(".q-submit-btn");
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Submitted ✓";
-    submitBtn.style.background = "var(--success, #2a7)";
-  }
-
-  stopQuestionTimer(qid);
-
-  const meta = EXAM?.meta || {};
-  if (meta.mode === "practice" && meta.include_answers) {
-    const q = EXAM.questions[parseInt(qid) - 1];
-    if (q && q.type === "mcq") {
-      const existing = card.querySelector(".key-box");
-      if (!existing) {
-        const box = document.createElement("div");
-        box.className = "key-box";
-        box.style.marginTop = "10px";
-        const correctOpt = (q.options || []).find(o => o.key === q.answer);
-        box.innerHTML = `<b>Answer:</b> ${q.answer}${correctOpt ? " — " + correctOpt.text : ""}<br/><b>Explanation:</b> ${q.explain || "—"}`;
-        card.appendChild(box);
-      }
-    }
-  }
-}
-
-function moveToNextQuestion(qid) {
-  if (!EXAM) return;
-  const current = parseInt(qid);
-  const total = EXAM.questions.length;
-
-  if (current < total) {
-    const nextQid = String(current + 1);
-    const nextCard = document.querySelector(`.q-card[data-qid="${nextQid}"]`);
-    if (nextCard) {
-      nextCard.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-    if (PER_Q_SECONDS > 0 && !Q_SUBMITTED[nextQid]) {
-      startQuestionTimer(nextQid, PER_Q_SECONDS);
-    }
-    if (SLIDE_MODE) goSlide(current + 1);
-  } else {
-    const submitBtn = $("submitBtn");
-    if (submitBtn) {
-      submitBtn.style.animation = "pulse 1s infinite";
-      submitBtn.scrollIntoView({ behavior: "smooth" });
-    }
-  }
-}
-
-// -- Lock all --
+// ── Lock ──
 function setLocked(on) {
   LOCKED = on;
-  document.querySelectorAll("input, textarea").forEach(el => {
-    if (!["themeBtn", "printBtn", "timeOverOk", "submitBtn"].includes(el.id)) {
-      el.disabled = on;
-    }
-  });
-  document.querySelectorAll(".q-card").forEach(card => {
-    if (on) card.classList.add("locked");
-    else card.classList.remove("locked");
-  });
   if (on) {
-    const btn = $("submitBtn");
-    if (btn) { btn.disabled = true; btn.textContent = "Submitted ✓"; }
+    $("bottomBar").style.display = "none";
+    $("submitTopBtn").disabled = true;
+    $("submitTopBtn").textContent = "Submitted ✓";
   }
 }
 
-// -- Progress --
+// ── Progress bar + palette sync ──
 function updateProgress() {
   if (!EXAM) return;
-  let answered = 0;
+  const total = EXAM.questions.length;
+  const answered = Object.keys(ANSWERS).filter(k => {
+    const v = ANSWERS[k];
+    return v && String(v).trim() !== "";
+  }).length;
+
+  // top progress bar
+  $("examProgressFill").style.width = `${(answered / total) * 100}%`;
+
+  // palette dots
   EXAM.questions.forEach((q, i) => {
-    const idx = i + 1;
-    const card = document.querySelector(`.q-card[data-qid="${idx}"]`);
-    let isAnswered = false;
-    if (q.type === "mcq") {
-      const picked = document.querySelector(`input[name="q_${idx}"]:checked`);
-      if (picked) isAnswered = true;
-    } else {
-      const ta = document.querySelector(`textarea[name="q_${idx}"]`);
-      const photos = window._photos && window._photos[idx];
-      if ((ta && ta.value.trim()) || (photos && photos.length > 0)) isAnswered = true;
-    }
-    if (isAnswered) {
-      answered++;
-      card && card.classList.add("answered");
-    } else {
-      card && card.classList.remove("answered");
-    }
+    const qid = String(i + 1);
+    const dot = $(`pdot-${qid}`);
+    if (!dot) return;
+    dot.className = "nta-p-dot";
+    if (String(i + 1) === String(CURRENT_Q)) dot.classList.add("current");
+    if (MARKED[qid]) dot.classList.add("marked");
+    else if (ANSWERS[qid] && String(ANSWERS[qid]).trim()) dot.classList.add("answered");
   });
-  $("progressPill").textContent = `${answered} / ${EXAM.questions.length} answered`;
 }
 
-// -- Track time per question --
-function recordQuestionFocus(qid) {
-  if (LOCKED) return;
+// ── Track time per Q ──
+function recordQFocus(qid) {
   Q_START_TIMES[qid] = Q_START_TIMES[qid] || Date.now();
 }
-
-function recordQuestionBlur(qid) {
+function recordQBlur(qid) {
   if (!Q_START_TIMES[qid]) return;
   const spent = Math.round((Date.now() - Q_START_TIMES[qid]) / 1000);
   Q_TIME_SPENT[qid] = (Q_TIME_SPENT[qid] || 0) + spent;
   Q_START_TIMES[qid] = null;
 }
-
-function trackQuestionFocus(qid) {
-  recordQuestionFocus(qid);
-}
-
 function finalizeAllTimes() {
   Object.keys(Q_START_TIMES).forEach(qid => {
-    if (Q_START_TIMES[qid]) recordQuestionBlur(qid);
+    if (Q_START_TIMES[qid]) recordQBlur(qid);
   });
 }
-
 function fmtSpent(sec) {
   if (!sec || sec < 1) return "< 1s";
   if (sec < 60) return `${sec}s`;
   return `${Math.floor(sec / 60)}m ${sec % 60}s`;
 }
 
-// -- Collect answers --
-function collectAnswers() {
-  const answers = {};
-  EXAM.questions.forEach((q, i) => {
-    const idx = String(i + 1);
-    if (q.type === "mcq") {
-      const picked = document.querySelector(`input[name="q_${idx}"]:checked`);
-      answers[idx] = picked ? picked.value : "";
-    } else {
-      const ta = document.querySelector(`textarea[name="q_${idx}"]`);
-      answers[idx] = ta ? ta.value : "";
-    }
-  });
-  return answers;
-}
-
-// -- Slide Mode --
-function initSlideMode() {
-  const paper = $("paper");
-  const btn = $("slideModeBtn");
-  if (!paper || !btn) return;
-
-  const progressBar = document.createElement("div");
-  progressBar.className = "slide-progress-bar";
-  progressBar.id = "slideProgressBar";
-  progressBar.innerHTML = `<div class="slide-progress-fill" id="slideProgressFill"></div>`;
-  paper.parentNode.insertBefore(progressBar, paper);
-
-  const nav = document.createElement("div");
-  nav.className = "slide-nav";
-  nav.id = "slideNav";
-  nav.innerHTML = `
-    <button class="slide-btn" id="slidePrev">← Prev</button>
-    <span class="slide-counter" id="slideCounter">1 / 1</span>
-    <button class="slide-btn" id="slideNext">Next →</button>
-  `;
-  paper.parentNode.insertBefore(nav, paper.nextSibling);
-
-  $("slidePrev").addEventListener("click", () => goSlide(SLIDE_CURRENT - 1));
-  $("slideNext").addEventListener("click", () => goSlide(SLIDE_CURRENT + 1));
-
-  btn.addEventListener("click", () => {
-    SLIDE_MODE = !SLIDE_MODE;
-    if (SLIDE_MODE) {
-      paper.classList.add("slide-mode");
-      btn.classList.add("slide-mode-active-btn");
-      btn.textContent = "☰ Scroll";
-      goSlide(1);
-    } else {
-      paper.classList.remove("slide-mode");
-      btn.classList.remove("slide-mode-active-btn");
-      btn.textContent = "▦ Slide";
-      document.querySelectorAll(".q-card").forEach(c => {
-        c.classList.remove("slide-active");
-      });
-    }
-  });
-}
-
-function goSlide(n) {
+// ── Render one question ──
+function renderQuestion(idx) {
   if (!EXAM) return;
   const total = EXAM.questions.length;
-  SLIDE_CURRENT = Math.max(1, Math.min(n, total));
-  trackQuestionFocus(String(SLIDE_CURRENT));
+  const q = EXAM.questions[idx - 1];
+  if (!q) return;
 
-  document.querySelectorAll(".q-card").forEach((card, i) => {
-    card.classList.toggle("slide-active", i + 1 === SLIDE_CURRENT);
-  });
+  const qid = String(idx);
+  recordQBlur(String(CURRENT_Q)); // stop timing old Q
+  CURRENT_Q = idx;
+  recordQFocus(qid);
 
-  const counter = $("slideCounter");
-  if (counter) counter.textContent = `${SLIDE_CURRENT} / ${total}`;
+  // Q counter
+  const container = $("activeQuestion");
+  const cleanQ = q.q.replace(/\[(EASY|MEDIUM|HARD)\]\s*/i, "").trim();
+  const isAnswered = ANSWERS[qid] && String(ANSWERS[qid]).trim();
+  const isMarked   = MARKED[qid];
 
-  const fill = $("slideProgressFill");
-  if (fill) fill.style.width = `${(SLIDE_CURRENT / total) * 100}%`;
-
-  const prev = $("slidePrev");
-  const next = $("slideNext");
-  if (prev) prev.disabled = SLIDE_CURRENT === 1;
-  if (next) {
-    if (SLIDE_CURRENT === total) {
-      next.innerHTML = "Submit ✓";
-      next.style.background = "var(--accent)";
-      next.style.color = "var(--accent-fg)";
-      next.style.borderColor = "var(--accent)";
-      next.onclick = () => { if (!LOCKED) submitExam(false); };
-    } else {
-      next.innerHTML = "Next →";
-      next.style.background = "";
-      next.style.color = "";
-      next.style.borderColor = "";
-      next.onclick = () => goSlide(SLIDE_CURRENT + 1);
-    }
-  }
-}
-
-// -- Render --
-function renderExam(exam) {
-  EXAM = exam;
-  window._photos = {};
-  EXAM_START_TIME = Date.now();
-
-  $("paperTitle").textContent = exam.title || "Test Paper";
-  const meta = exam.meta || {};
-  $("paperMeta").textContent = [
-    meta.exam_format || "",
-    meta.mode || "practice",
-    meta.difficulty || "",
-  ].filter(Boolean).join(" · ");
-  $("paperInfo").textContent = meta.mode === "exam"
-    ? "Exam Mode — answers shown after submission."
-    : "Practice Mode — reveal answers anytime.";
-
-  const totalMinutes = Number(meta.timer_minutes || 0);
-  if (totalMinutes > 0 && exam.questions.length > 0) {
-    PER_Q_SECONDS = Math.floor((totalMinutes * 60) / exam.questions.length);
+  let optionsHtml = "";
+  if (q.type === "mcq" || !q.type) {
+    const options = q.options || [];
+    optionsHtml = `<div class="nta-options" id="ntaOptions">` +
+      options.map(opt => {
+        const selected = ANSWERS[qid] === opt.key ? "selected" : "";
+        return `
+          <div class="nta-opt ${selected}" data-key="${opt.key}">
+            <div class="nta-opt-key">${opt.key}</div>
+            <div class="nta-opt-text">${opt.text}</div>
+          </div>`;
+      }).join("") +
+    `</div>`;
+  } else {
+    // written
+    const saved = ANSWERS[qid] || "";
+    optionsHtml = `<textarea class="nta-written-box" id="writtenBox" placeholder="Type your answer here…">${saved}</textarea>`;
   }
 
-  const wrap = $("paper");
-  wrap.innerHTML = "";
-
-  exam.questions.forEach((q, i) => {
-    const idx = i + 1;
-    const qid = String(idx);
-
-    // Clean question text
-    const cleanQ = q.q.replace(/\[(EASY|MEDIUM|HARD)\]\s*/i, "").trim();
-
-    const card = document.createElement("div");
-    card.className = "q-card";
-    card.dataset.qid = qid;
-
-    card.addEventListener("mouseenter", () => recordQuestionFocus(qid));
-    card.addEventListener("mouseleave", () => recordQuestionBlur(qid));
-    card.addEventListener("focusin", () => recordQuestionFocus(qid));
-    card.addEventListener("focusout", () => recordQuestionBlur(qid));
-
-    const timerPillHtml = PER_Q_SECONDS > 0
-      ? `<span class="q-timer-pill" data-qid="${qid}">⏱ ${fmtTime(PER_Q_SECONDS)}</span>`
-      : "";
-
-    card.innerHTML = `
-      <div class="q-head">
-        <div class="q-meta">
-          <span class="q-num">Q${idx} · MCQ</span>
-          ${timerPillHtml}
-        </div>
-        <span class="q-marks">1 mark</span>
+  container.innerHTML = `
+    <div class="nta-q-header">
+      <div class="nta-q-counter">${idx} <span>/ ${total}</span></div>
+      <div class="nta-q-actions">
+        <div class="nta-icon-btn ${isMarked ? 'marked' : ''}" id="markIconBtn" title="Mark for Review">📌</div>
+        <div class="nta-icon-btn" id="themeIconBtn" title="Toggle Theme">🌙</div>
       </div>
-      <div class="q-text">${cleanQ}</div>
-    `;
-
-    // --- OPTIONS RENDERING (the key fix) ---
-    const options = q.options;
-
-    if (!options || options.length === 0) {
-      // Fallback: show error state for this question
-      const err = document.createElement("div");
-      err.style.cssText = "color:var(--muted);font-size:.85rem;padding:10px 0;";
-      err.textContent = "⚠️ Options failed to load for this question.";
-      card.appendChild(err);
-    } else {
-      options.forEach(opt => {
-        if (!opt || !opt.text || !String(opt.text).trim()) return;
-
-        const label = document.createElement("label");
-        label.className = "opt";
-
-        const input = document.createElement("input");
-        input.type = "radio";
-        input.name = `q_${qid}`;
-        input.value = opt.key;
-
-        const span = document.createElement("span");
-        span.innerHTML = `<b>${opt.key}.</b> ${opt.text}`;
-
-        input.addEventListener("change", updateProgress);
-        label.appendChild(input);
-        label.appendChild(span);
-        card.appendChild(label);
-      });
-    }
-
-    // Per-question Submit button
-    const qSubmitBtn = document.createElement("button");
-    qSubmitBtn.type = "button";
-    qSubmitBtn.className = "q-submit-btn";
-    qSubmitBtn.dataset.qid = qid;
-    qSubmitBtn.textContent = idx < exam.questions.length ? "Submit & Next →" : "Submit Answer ✓";
-    qSubmitBtn.addEventListener("click", () => {
-      if (Q_SUBMITTED[qid]) return;
-      lockQuestion(qid);
-      moveToNextQuestion(qid);
-    });
-    card.appendChild(qSubmitBtn);
-
-    if (meta.mode === "practice" && meta.include_answers && PER_Q_SECONDS === 0) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "reveal-btn";
-      btn.innerHTML = "👁 Reveal Answer";
-      btn.addEventListener("click", () => {
-        const correctOpt = (options || []).find(o => o.key === q.answer);
-        const box = document.createElement("div");
-        box.className = "key-box";
-        box.innerHTML = `<b>Answer:</b> ${q.answer}${correctOpt ? " — " + correctOpt.text : ""}<br/><b>Explanation:</b> ${q.explain || "—"}`;
-        btn.replaceWith(box);
-      });
-      card.appendChild(btn);
-    }
-
-    wrap.appendChild(card);
-  });
-
-  if (totalMinutes > 0) startTimer(totalMinutes * 60);
-  if (PER_Q_SECONDS > 0) startQuestionTimer("1", PER_Q_SECONDS);
-
-  document.addEventListener("change", updateProgress);
-  updateProgress();
-  initSlideMode();
-}
-
-function renderPhotoPreview(qid) {
-  const preview = document.getElementById(`photoPreview_${qid}`);
-  if (!preview) return;
-  const photos = window._photos[qid] || [];
-  preview.innerHTML = photos.map((src, i) => `
-    <div class="photo-thumb">
-      <img src="${src}" alt="Answer photo ${i + 1}">
-      <button class="rm-photo" data-qid="${qid}" data-idx="${i}" title="Remove">✕</button>
     </div>
-  `).join("");
-  preview.querySelectorAll(".rm-photo").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const q = btn.dataset.qid;
-      const idx = Number(btn.dataset.idx);
-      window._photos[q].splice(idx, 1);
-      renderPhotoPreview(q);
+    <div class="nta-q-card">
+      <div class="nta-q-text">${cleanQ}</div>
+      ${optionsHtml}
+      <div id="answerReveal"></div>
+    </div>
+  `;
+
+  // Option click
+  container.querySelectorAll(".nta-opt").forEach(opt => {
+    opt.addEventListener("click", () => {
+      if (LOCKED) return;
+      const key = opt.dataset.key;
+      ANSWERS[qid] = key;
+      container.querySelectorAll(".nta-opt").forEach(o => o.classList.remove("selected"));
+      opt.classList.add("selected");
       updateProgress();
     });
   });
+
+  // Written box save on input
+  const wb = $("writtenBox");
+  if (wb) {
+    wb.addEventListener("input", () => {
+      ANSWERS[qid] = wb.value;
+      updateProgress();
+    });
+  }
+
+  // Mark btn
+  $("markIconBtn")?.addEventListener("click", () => {
+    MARKED[qid] = !MARKED[qid];
+    updateProgress();
+    renderQuestion(CURRENT_Q); // re-render to update mark icon
+  });
+
+  $("themeIconBtn")?.addEventListener("click", toggleTheme);
+
+  // Show answer if practice mode & answered & submitted
+  if (LOCKED && EXAM.meta?.include_answers && q.type === "mcq") {
+    showAnswerReveal(q, qid);
+  }
+
+  // Update nav buttons
+  $("btnPrev").disabled = idx === 1;
+  $("btnNextArrow").disabled = idx === total;
+
+  updateProgress();
 }
 
-// -- Submit all --
+function showAnswerReveal(q, qid) {
+  const box = $("answerReveal");
+  if (!box) return;
+  const correctOpt = (q.options || []).find(o => o.key === q.answer);
+  const userAns = ANSWERS[qid] || "—";
+  const correct = userAns === q.answer;
+  box.innerHTML = `
+    <div class="nta-answer-box" style="${correct ? '' : 'background:#fef2f2;border-color:#fca5a5;'}">
+      <b>${correct ? "✅ Correct!" : "❌ Incorrect"}</b><br/>
+      <b>Your answer:</b> ${userAns}<br/>
+      <b>Correct:</b> ${q.answer}${correctOpt ? " — " + correctOpt.text : ""}<br/>
+      <b>Explanation:</b> ${q.explain || "—"}
+    </div>
+  `;
+}
+
+// ── Build palette ──
+function buildPalette(total) {
+  const wrap = $("paletteWrap");
+  const pal  = $("qPalette");
+  if (!wrap || !pal) return;
+  wrap.style.display = "block";
+  pal.innerHTML = "";
+  for (let i = 1; i <= total; i++) {
+    const d = document.createElement("div");
+    d.className = "nta-p-dot";
+    d.textContent = i;
+    d.id = `pdot-${i}`;
+    d.addEventListener("click", () => renderQuestion(i));
+    pal.appendChild(d);
+  }
+}
+
+// ── Collect answers for submit ──
+function collectAnswers() {
+  const out = {};
+  if (!EXAM) return out;
+  EXAM.questions.forEach((q, i) => {
+    const qid = String(i + 1);
+    out[qid] = ANSWERS[qid] || "";
+  });
+  return out;
+}
+
+// ── Render exam ──
+function renderExam(exam) {
+  EXAM = exam;
+  EXAM_START_TIME = Date.now();
+  window._photos = {};
+
+  const meta = exam.meta || {};
+  $("paperMeta").textContent = [
+    meta.exam_format || "Test lele",
+    meta.mode || "practice",
+    meta.difficulty || "",
+  ].filter(Boolean).join(" · ");
+
+  buildPalette(exam.questions.length);
+  renderQuestion(1);
+
+  const totalMinutes = Number(meta.timer_minutes || 0);
+  if (totalMinutes > 0) startTimer(totalMinutes * 60);
+}
+
+// ── Navigation ──
+function goNext() {
+  if (!EXAM) return;
+  const total = EXAM.questions.length;
+  if (CURRENT_Q < total) renderQuestion(CURRENT_Q + 1);
+  else {
+    // last question — prompt submit
+    if (!LOCKED && confirm(`You've reached the last question. Submit the exam?`)) {
+      submitExam(false);
+    }
+  }
+}
+function goPrev() {
+  if (CURRENT_Q > 1) renderQuestion(CURRENT_Q - 1);
+}
+
+// ── Submit ──
 async function submitExam(time_over = false) {
   if (!EXAM) return;
   if (LOCKED && !time_over) return;
 
-  Object.keys(Q_TIMER_IDS).forEach(qid => stopQuestionTimer(qid));
   finalizeAllTimes();
   stopTimer();
   setLocked(true);
 
   const status = $("submitStatus");
   status.textContent = "Submitting…";
-  status.className = "sub-status";
 
   try {
     const r = await fetch(`/api/submit/${examId}`, {
@@ -510,136 +323,115 @@ async function submitExam(time_over = false) {
   }
 }
 
-// -- Share --
+// ── Share ──
 function buildShareText(res) {
   const topic = EXAM?.title || "a topic";
-  const pct = res.percentage;
-  const grade = res.grade;
-  return `I just scored ${pct}% (${grade}) on a "${topic}" practice test on Test lele! 🎯\nTry it free → https://test-lele-production.up.railway.app`;
+  return `I just scored ${res.percentage}% (${res.grade}) on a "${topic}" practice test on Test lele! 🎯\nTry it free → https://test-lele-production.up.railway.app`;
 }
 
-function showShareButtons(res) {
-  const text = encodeURIComponent(buildShareText(res));
-  const wa = `https://wa.me/?text=${text}`;
-  const tw = `https://twitter.com/intent/tweet?text=${text}`;
-
-  const div = document.createElement("div");
-  div.className = "share-row";
-  div.innerHTML = `
-    <div class="share-label">📤 Share your result</div>
-    <div class="share-btns">
-      <a class="share-btn whatsapp" href="${wa}" target="_blank" rel="noopener">
-        <span>💬</span> WhatsApp
-      </a>
-      <a class="share-btn twitter" href="${tw}" target="_blank" rel="noopener">
-        <span>🐦</span> Twitter/X
-      </a>
-      <button class="share-btn copy" id="copyShareBtn">
-        <span>📋</span> Copy Link
-      </button>
-    </div>
-  `;
-  return div;
-}
-
-// -- Time per question table --
+// ── Time table ──
 function buildTimeTable() {
   if (!EXAM) return null;
   const totalSec = Math.round((Date.now() - EXAM_START_TIME) / 1000);
-
   const rows = EXAM.questions.map((q, i) => {
     const qid = String(i + 1);
     const sec = Q_TIME_SPENT[qid] || 0;
     const pct = totalSec > 0 ? Math.round((sec / totalSec) * 100) : 0;
-    const bar = `<div class="time-bar-wrap"><div class="time-bar" style="width:${Math.min(pct, 100)}%"></div></div>`;
-    return `
-      <tr>
-        <td class="tc-q">Q${qid}</td>
-        <td class="tc-type">MCQ</td>
-        <td class="tc-time">${fmtSpent(sec)}</td>
-        <td class="tc-bar">${bar}</td>
-      </tr>
-    `;
+    return `<tr>
+      <td class="tc-q">Q${qid}</td>
+      <td class="tc-type">${q.type || "MCQ"}</td>
+      <td class="tc-time">${fmtSpent(sec)}</td>
+      <td><div class="time-bar-wrap"><div class="time-bar" style="width:${Math.min(pct,100)}%"></div></div></td>
+    </tr>`;
   }).join("");
-
   const div = document.createElement("div");
   div.className = "time-table-wrap";
   div.innerHTML = `
     <div class="result-section">
       <h3>⏱ Time Spent per Question</h3>
-      <p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;">
-        Total exam time: <b>${fmtSpent(totalSec)}</b>
-      </p>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;">Total: <b>${fmtSpent(totalSec)}</b></p>
       <table class="time-table">
-        <thead>
-          <tr><th>Q#</th><th>Type</th><th>Time</th><th>Proportion</th></tr>
-        </thead>
+        <thead><tr><th>Q#</th><th>Type</th><th>Time</th><th>Proportion</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-    </div>
-  `;
+    </div>`;
   return div;
 }
 
+// ── Show Result ──
 function showResult(res) {
+  // Show answers on current question if practice
+  if (EXAM?.meta?.include_answers) {
+    EXAM.questions.forEach((q, i) => {
+      if (q.type === "mcq") {
+        // mark correct/wrong on answer_key
+      }
+    });
+  }
+
+  // Re-render current Q to show answer
+  renderQuestion(CURRENT_Q);
+
   const box = $("result");
   box.style.display = "block";
   box.className = "result-card";
 
   const miss = (res.missing_points || []).map(x => `<li>${x}</li>`).join("");
-  const rev = (res.suggested_revision || []).map(x => `<li>${x}</li>`).join("");
+  const rev  = (res.suggested_revision || []).map(x => `<li>${x}</li>`).join("");
 
   box.innerHTML = `
     <div class="result-score">${res.percentage}%</div>
     <div class="result-grade">${res.grade} · ${res.score}</div>
     <div class="result-feedback">${res.feedback}</div>
     <hr/>
-    <div class="result-section">
-      <h3>Missed Questions</h3>
-      <ul>${miss || "<li>None — perfect score! 🎉</li>"}</ul>
-    </div>
-    <div class="result-section">
-      <h3>Suggested Revision</h3>
-      <ul>${rev || "<li>—</li>"}</ul>
-    </div>
+    <div class="result-section"><h3>Missed Questions</h3><ul>${miss || "<li>None — perfect score! 🎉</li>"}</ul></div>
+    <div class="result-section"><h3>Suggested Revision</h3><ul>${rev || "<li>—</li>"}</ul></div>
   `;
 
   const timeTable = buildTimeTable();
   if (timeTable) box.appendChild(timeTable);
 
-  const shareDiv = showShareButtons(res);
+  // Share buttons
+  const text = encodeURIComponent(buildShareText(res));
+  const shareDiv = document.createElement("div");
+  shareDiv.className = "share-row";
+  shareDiv.innerHTML = `
+    <div class="share-label">📤 Share your result</div>
+    <div class="share-btns">
+      <a class="share-btn whatsapp" href="https://wa.me/?text=${text}" target="_blank">💬 WhatsApp</a>
+      <a class="share-btn twitter" href="https://twitter.com/intent/tweet?text=${text}" target="_blank">🐦 Twitter/X</a>
+      <button class="share-btn copy" id="copyShareBtn">📋 Copy Link</button>
+    </div>`;
   box.appendChild(shareDiv);
 
   box.querySelector("#copyShareBtn")?.addEventListener("click", () => {
-    const txt = buildShareText(res);
-    navigator.clipboard.writeText(txt).then(() => {
+    navigator.clipboard.writeText(buildShareText(res)).then(() => {
       const btn = box.querySelector("#copyShareBtn");
-      btn.innerHTML = "<span>✅</span> Copied!";
-      setTimeout(() => btn.innerHTML = "<span>📋</span> Copy Link", 2000);
+      btn.innerHTML = "✅ Copied!";
+      setTimeout(() => btn.innerHTML = "📋 Copy Link", 2000);
     });
   });
 
+  // Apply answer key to palette — color answered correct/wrong
   if (res.answer_key) {
-    Object.keys(res.answer_key).forEach(qid => {
+    EXAM.questions.forEach((q, i) => {
+      const qid = String(i + 1);
       const key = res.answer_key[qid];
-      const card = document.querySelector(`.q-card[data-qid="${qid}"]`);
-      if (!card) return;
-      const existing = card.querySelector(".key-box");
-      if (existing) return;
-      const div = document.createElement("div");
-      div.className = "key-box";
-      div.style.marginTop = "12px";
+      const dot = $(`pdot-${qid}`);
+      if (!dot || !key) return;
       if (key.type === "mcq") {
-        div.innerHTML = `<b>Answer:</b> ${key.answer}<br/><b>Explanation:</b> ${key.explain || "—"}`;
+        const correct = ANSWERS[qid] === key.answer;
+        dot.style.background = correct ? "#16a34a" : "#dc2626";
+        dot.style.borderColor = correct ? "#16a34a" : "#dc2626";
+        dot.style.color = "#fff";
       }
-      card.appendChild(div);
     });
   }
 
   box.scrollIntoView({ behavior: "smooth", block: "start" });
 
   setTimeout(() => {
-    const modal = document.getElementById("wlModal");
+    const modal = $("wlModal");
     if (modal && !sessionStorage.getItem("wl_shown")) {
       modal.style.display = "grid";
       sessionStorage.setItem("wl_shown", "1");
@@ -647,53 +439,66 @@ function showResult(res) {
   }, 4000);
 }
 
-// -- Load exam --
+// ── Load exam ──
 async function loadExam() {
   const status = $("submitStatus");
-
   try {
     const r = await fetch(`/api/exam/${examId}`);
     const data = await r.json();
-
-    if (data.error) {
-      status.textContent = "❌ " + data.error;
-      return;
-    }
-
+    if (data.error) { status.textContent = "❌ " + data.error; return; }
     if (!data.questions || data.questions.length === 0) {
-      status.textContent = "❌ No questions found. Go back and try again.";
-      $("paperTitle").textContent = "Error";
-      return;
+      status.textContent = "❌ No questions found."; return;
     }
-
-    // Validate options exist on at least first question
-    const firstQ = data.questions[0];
-    if (!firstQ.options || firstQ.options.length === 0) {
-      status.textContent = "❌ Questions loaded but options are missing. Please regenerate.";
-      return;
-    }
-
     renderExam(data);
-
   } catch (e) {
     if (status) status.textContent = "❌ Failed to load exam. Please go back and try again.";
     console.error("loadExam error:", e);
   }
 }
 
-// -- Init --
+// ── Init ──
 document.addEventListener("DOMContentLoaded", async () => {
   applyTheme(localStorage.getItem("theme") || "light");
+
   $("themeBtn")?.addEventListener("click", toggleTheme);
-  $("printBtn")?.addEventListener("click", () => window.print());
+
+  $("submitTopBtn")?.addEventListener("click", () => {
+    if (LOCKED) return;
+    const answered = Object.keys(ANSWERS).filter(k => ANSWERS[k] && String(ANSWERS[k]).trim()).length;
+    const total = EXAM?.questions?.length || 0;
+    const unanswered = total - answered;
+    const msg = unanswered > 0
+      ? `You have ${unanswered} unanswered question(s). Submit anyway?`
+      : "Submit the exam?";
+    if (confirm(msg)) submitExam(false);
+  });
+
+  $("btnPrev")?.addEventListener("click", goPrev);
+  $("btnNextArrow")?.addEventListener("click", goNext);
+
+  $("btnMark")?.addEventListener("click", () => {
+    const qid = String(CURRENT_Q);
+    MARKED[qid] = !MARKED[qid];
+    updateProgress();
+    renderQuestion(CURRENT_Q);
+  });
+
+  $("btnClear")?.addEventListener("click", () => {
+    const qid = String(CURRENT_Q);
+    delete ANSWERS[qid];
+    updateProgress();
+    renderQuestion(CURRENT_Q);
+  });
+
+  $("btnNext")?.addEventListener("click", () => {
+    // "Save & Next" — answer is already saved on click, just go next
+    goNext();
+  });
+
   $("timeOverOk")?.addEventListener("click", () => {
     $("timeOverModal").style.display = "none";
   });
-  $("submitBtn")?.addEventListener("click", async () => {
-    if (TIME_OVER_AUTO || LOCKED) return;
-    stopTimer();
-    await submitExam(false);
-  });
+
   if (!examId) {
     $("submitStatus").textContent = "Error: missing exam ID in URL.";
     return;

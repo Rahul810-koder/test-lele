@@ -15,221 +15,428 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css"/>
   <style>
-    body { font-family: 'Outfit', sans-serif !important; }
+    body { font-family: 'Outfit', sans-serif !important; margin: 0; }
 
-    /* ── Mobile nav ── */
-    @media (max-width: 600px) {
-      .page { padding: 10px 12px 80px; }
-      .nav  { padding: 10px 0 14px; flex-wrap: wrap; gap: 6px; }
-      .brandSub { display: none; }
-      .navRight { gap: 5px; flex-wrap: wrap; }
-      .btn.ghost { padding: 7px 9px; font-size: .76rem; }
-      .pill { padding: 5px 9px; font-size: .76rem; }
-      .exam-title { font-size: 1.15rem; }
-      .exam-header { padding: 14px 16px; }
-    }
+    /* ══════════════════════════════════
+       NTA-style layout
+    ══════════════════════════════════ */
 
-    /* ── Question cards mobile ── */
-    @media (max-width: 600px) {
-      .q-card { padding: 15px 14px; border-radius: 14px; }
-      .q-text { font-size: .92rem; }
-      .opt    { padding: 10px 12px; font-size: .88rem; }
-    }
-
-    /* ── Sticky footer on mobile ── */
-    .exam-footer {
-      position: sticky;
-      bottom: 0;
-      z-index: 10;
-    }
-    @media (max-width: 600px) {
-      .exam-footer { padding: 12px 14px; border-radius: 0; border-left: none; border-right: none; border-bottom: none; }
-    }
-
-    /* ── Progress bar ── */
-    .exam-progress-bar {
-      height: 3px;
-      background: var(--border);
-      border-radius: 999px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-    .exam-progress-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 999px;
-      transition: width .4s ease;
-    }
-
-    /* ── Q number dots ── */
-    .q-dots-wrap {
+    /* Top bar */
+    .nta-topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      padding: 12px 16px;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      gap: 10px;
+    }
+    .nta-brand { display: flex; align-items: center; gap: 8px; }
+    .nta-brand .mark {
+      width: 32px; height: 32px; background: var(--accent); color: var(--accent-fg);
+      border-radius: 8px; display: grid; place-items: center; font-weight: 900; font-size: 12px;
+    }
+    .nta-brand-name { font-weight: 800; font-size: .9rem; }
+    .nta-timer-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #1a3a8c; color: #fff;
+      border-radius: 8px; padding: 6px 14px;
+      font-weight: 800; font-size: .9rem; font-family: 'Outfit', sans-serif;
+      min-width: 90px; justify-content: center;
+    }
+    .nta-timer-pill.warn   { background: #d97706; }
+    .nta-timer-pill.danger { background: #dc2626; animation: pulse 1s infinite; }
+    .nta-topbar-right { display: flex; align-items: center; gap: 8px; }
+    .nta-submit-top {
+      background: #dc2626; color: #fff; border: none;
+      border-radius: 8px; padding: 8px 16px; font-size: .85rem; font-weight: 800;
+      cursor: pointer; font-family: 'Outfit', sans-serif; transition: opacity .15s;
+    }
+    .nta-submit-top:hover { opacity: .88; }
+
+    /* Progress bar under topbar */
+    .nta-progress-bar {
+      height: 3px; background: var(--border);
+    }
+    .nta-progress-fill {
+      height: 100%; background: #1a3a8c; transition: width .4s ease;
+    }
+    [data-theme="dark"] .nta-timer-pill { background: #2563eb; }
+    [data-theme="dark"] .nta-progress-fill { background: var(--accent); }
+
+    /* Main layout: question area */
+    .nta-body {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 16px 16px 160px;
+    }
+
+    /* Question counter header */
+    .nta-q-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 10px;
+    }
+    .nta-q-counter {
+      font-size: .9rem; font-weight: 800; color: var(--text);
+    }
+    .nta-q-counter span { color: var(--muted); font-weight: 600; }
+    .nta-q-actions { display: flex; gap: 8px; }
+    .nta-icon-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: var(--surface2); border: 1.5px solid var(--border);
+      display: grid; place-items: center; cursor: pointer;
+      font-size: 1rem; transition: all .15s; color: var(--text);
+    }
+    .nta-icon-btn:hover { border-color: var(--accent); }
+    .nta-icon-btn.marked { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+
+    /* Question card */
+    .nta-q-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      margin-bottom: 12px;
+      border-radius: 16px;
+      padding: 20px 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+      animation: fadeSlide .25s ease;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .nta-q-text {
+      font-size: .97rem; font-weight: 700; line-height: 1.6;
+      color: var(--text); margin-bottom: 18px;
+    }
+
+    /* NTA Options — big touch-friendly */
+    .nta-options { display: grid; gap: 10px; }
+    .nta-opt {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all .15s;
+      background: var(--surface2);
+      user-select: none;
+    }
+    .nta-opt:hover { border-color: #1a3a8c; background: var(--surface); }
+    .nta-opt.selected {
+      border-color: #1a3a8c; background: #eff6ff;
+    }
+    [data-theme="dark"] .nta-opt.selected {
+      border-color: #3b82f6; background: #1e3a5f;
+    }
+    .nta-opt-key {
+      width: 30px; height: 30px; flex-shrink: 0;
+      border: 2px solid var(--border); border-radius: 6px;
+      display: grid; place-items: center;
+      font-size: .82rem; font-weight: 800; color: var(--muted);
+      background: var(--surface); transition: all .15s;
+    }
+    .nta-opt.selected .nta-opt-key {
+      background: #1a3a8c; color: #fff; border-color: #1a3a8c;
+    }
+    [data-theme="dark"] .nta-opt.selected .nta-opt-key {
+      background: #3b82f6; border-color: #3b82f6;
+    }
+    .nta-opt-text {
+      font-size: .9rem; font-weight: 600; color: var(--text); line-height: 1.5;
+      padding-top: 4px;
+    }
+
+    /* Answer reveal box */
+    .nta-answer-box {
+      margin-top: 14px;
+      padding: 14px 16px;
+      background: #f0fdf4; border: 1.5px solid #86efac;
+      border-radius: 12px; font-size: .87rem; line-height: 1.65;
+    }
+    [data-theme="dark"] .nta-answer-box {
+      background: #14532d; border-color: #16a34a; color: #d1fae5;
+    }
+
+    /* Written answer */
+    .nta-written-box {
+      width: 100%; min-height: 120px; resize: vertical;
+      border: 2px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; font-family: 'Outfit', sans-serif;
+      font-size: .9rem; background: var(--surface2); color: var(--text);
+      outline: none; transition: border-color .15s;
+    }
+    .nta-written-box:focus { border-color: #1a3a8c; }
+
+    /* Question palette */
+    .nta-palette-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
       box-shadow: var(--shadow);
     }
-    .q-dot {
-      width: 28px; height: 28px;
-      border-radius: 8px;
-      border: 1.5px solid var(--border);
-      background: var(--surface2);
-      display: grid; place-items: center;
-      font-size: .72rem; font-weight: 800;
-      cursor: pointer; transition: all .15s;
-      color: var(--muted);
+    .nta-palette-title {
+      font-size: .72rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); margin-bottom: 10px;
     }
-    .q-dot.answered { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-    .q-dot.current  { border-color: var(--accent); color: var(--accent); }
+    .nta-palette {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .nta-p-dot {
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 2px solid var(--border);
+      display: grid; place-items: center;
+      font-size: .75rem; font-weight: 800;
+      cursor: pointer; transition: all .15s;
+      color: var(--muted); background: var(--surface2);
+    }
+    .nta-p-dot.answered   { background: #16a34a; color: #fff; border-color: #16a34a; }
+    .nta-p-dot.marked     { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .nta-p-dot.current    { border-color: #1a3a8c; color: #1a3a8c; font-weight: 900; }
+    [data-theme="dark"] .nta-p-dot.current { border-color: #60a5fa; color: #60a5fa; }
+    [data-theme="dark"] .nta-p-dot.answered { background: #15803d; }
+    .nta-palette-legend {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;
+    }
+    .nta-legend-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: .72rem; color: var(--muted); font-weight: 600;
+    }
+    .nta-legend-dot {
+      width: 12px; height: 12px; border-radius: 3px;
+    }
+    .lg-answered { background: #16a34a; }
+    .lg-marked   { background: #7c3aed; }
+    .lg-unanswered { background: var(--surface2); border: 2px solid var(--border); }
+
+    /* Bottom nav bar */
+    .nta-bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex; gap: 8px; justify-content: center;
+      align-items: center;
+      z-index: 100;
+      box-shadow: 0 -4px 20px rgba(0,0,0,.08);
+    }
+    .nta-bottom-bar-inner {
+      display: flex; gap: 8px; max-width: 700px; width: 100%;
+    }
+    .nta-bar-btn {
+      flex: 1; padding: 11px 8px; border-radius: 10px;
+      font-size: .82rem; font-weight: 800; cursor: pointer;
+      font-family: 'Outfit', sans-serif; border: 2px solid var(--border);
+      transition: all .15s; text-align: center;
+    }
+    .nta-bar-btn.review {
+      background: #7c3aed; color: #fff; border-color: #7c3aed;
+    }
+    .nta-bar-btn.review:hover { opacity: .88; }
+    .nta-bar-btn.clear {
+      background: var(--surface2); color: var(--text);
+    }
+    .nta-bar-btn.clear:hover { border-color: var(--accent); }
+    .nta-bar-btn.next {
+      background: #16a34a; color: #fff; border-color: #16a34a;
+    }
+    .nta-bar-btn.next:hover { opacity: .88; }
+    .nta-nav-arrows {
+      display: flex; gap: 6px;
+    }
+    .nta-arrow-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--surface2); border: 2px solid var(--border);
+      display: grid; place-items: center; cursor: pointer;
+      font-size: .9rem; font-weight: 800; color: var(--text);
+      transition: all .15s; font-family: 'Outfit', sans-serif;
+      flex-shrink: 0;
+    }
+    .nta-arrow-btn:hover { border-color: var(--accent); }
+    .nta-arrow-btn:disabled { opacity: .3; cursor: not-allowed; }
+    .nta-arrow-btn:disabled:hover { border-color: var(--border); }
+
+    /* Result & Modal (reuse existing styles) */
+    .result-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px 20px;
+      box-shadow: var(--shadow); margin-top: 14px;
+    }
+    .result-score { font-size: 2.6rem; font-weight: 900; letter-spacing: -2px; }
+    .result-grade { display: inline-block; margin-top: 8px; padding: 4px 14px; border-radius: 999px; font-size: .8rem; font-weight: 800; background: var(--surface2); border: 1px solid var(--border); }
+    .result-feedback { margin-top: 12px; color: var(--muted); font-size: .88rem; line-height: 1.6; }
+    .result-section { margin-top: 18px; }
+    .result-section h3 { font-size: .76rem; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 10px; }
+    .result-section ul { padding-left: 18px; display: grid; gap: 6px; }
+    .result-section li { font-size: .87rem; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+    .share-row { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .share-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 9px; }
+    .share-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .share-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 10px; font-size: .83rem; font-weight: 700; cursor: pointer; text-decoration: none; border: none; font-family: var(--font); transition: opacity .15s; }
+    .share-btn:hover { opacity: .85; }
+    .share-btn.whatsapp { background: #25D366; color: #fff; }
+    .share-btn.twitter  { background: #1DA1F2; color: #fff; }
+    .share-btn.copy     { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .time-table-wrap { margin-top: 8px; overflow-x: auto; }
+    .time-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .time-table th { text-align: left; color: var(--muted); font-weight: 700; padding: 5px 7px; border-bottom: 1px solid var(--border); font-size: .73rem; text-transform: uppercase; letter-spacing: .4px; }
+    .time-table td { padding: 7px 7px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .tc-q { font-weight: 800; width: 32px; }
+    .tc-type { color: var(--muted); width: 60px; }
+    .tc-time { font-weight: 700; width: 55px; }
+    .time-bar-wrap { background: var(--surface2); border-radius: 999px; height: 6px; overflow: hidden; }
+    .time-bar { background: var(--accent); height: 100%; border-radius: 999px; min-width: 3px; }
+    .sub-status { font-size: .86rem; font-weight: 600; color: var(--muted); }
+    .sub-status.ok  { color: #16a34a; }
+    .sub-status.err { color: #dc2626; }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 16px; z-index: 999; }
+    .modal-card { width: min(380px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; box-shadow: 0 8px 40px rgba(0,0,0,.12); }
+    .modal-card h3 { font-size: 1.15rem; font-weight: 900; margin-bottom: 8px; }
+    .modal-card p { color: var(--muted); font-size: .88rem; margin-bottom: 20px; }
+    .wl-modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 16px; z-index: 999; }
+    .wl-modal-card { width: min(460px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px 24px; box-shadow: 0 8px 40px rgba(0,0,0,.12); max-height: 90vh; overflow-y: auto; }
+    .wl-modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .wl-modal-head h3 { font-size: 1.15rem; font-weight: 900; }
+    .wl-close { border: none; background: var(--surface2); border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; font-size: 1rem; color: var(--muted); }
+    .wl-sub { color: var(--muted); font-size: .86rem; margin-bottom: 18px; }
+    .wl-success { display: none; text-align: center; padding: 16px 0 8px; }
+    .wl-success .tick { font-size: 2rem; margin-bottom: 10px; }
+    .wl-success h3 { font-weight: 900; margin-bottom: 6px; }
+    .form { display: grid; gap: 14px; }
+    .field { display: grid; gap: 6px; }
+    .label { font-size: .73rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+    .input, select, textarea { width: 100%; background: var(--surface2); border: 1.5px solid var(--border); color: var(--text); border-radius: 10px; padding: 11px 13px; font-family: 'Outfit', sans-serif; font-size: .9rem; outline: none; transition: border-color .15s; appearance: none; }
+    .input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; border: none; background: var(--accent); color: var(--accent-fg); padding: 9px 16px; border-radius: 10px; font-weight: 700; font-size: .88rem; cursor: pointer; transition: opacity .15s; font-family: 'Outfit', sans-serif; }
+    .btn:hover { opacity: .88; }
+    .btn:disabled { opacity: .4; pointer-events: none; }
+
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.6;} }
+
     @media (max-width: 600px) {
-      .q-dot { width: 26px; height: 26px; font-size: .68rem; border-radius: 7px; }
+      .nta-body { padding: 12px 12px 150px; }
+      .nta-topbar { padding: 8px 12px; }
+      .nta-q-text { font-size: .9rem; }
+      .nta-opt { padding: 12px 13px; }
+      .nta-bottom-bar { padding: 10px 12px; }
+      .nta-bar-btn { font-size: .77rem; padding: 10px 6px; }
     }
   </style>
 </head>
 <body>
-<main class="page">
-  <header class="nav">
-    <div class="brand">
-      <div class="mark">TL</div>
-      <div>
-        <div class="brandName">Test lele</div>
-        <div class="brandSub" id="paperMeta">Loading...</div>
-      </div>
+
+<!-- Top bar -->
+<div class="nta-topbar">
+  <div class="nta-brand">
+    <div class="mark">TL</div>
+    <div class="nta-brand-name" id="paperMeta">Loading...</div>
+  </div>
+  <div class="nta-topbar-right">
+    <div class="nta-timer-pill" id="timerPill" style="display:none;">⏱ 00:00</div>
+    <button class="btn" style="padding:7px 11px;font-size:.78rem;background:var(--surface2);color:var(--text);border:1px solid var(--border);" id="themeBtn" type="button">🌙</button>
+    <button class="nta-submit-top" id="submitTopBtn" type="button">Submit Test</button>
+  </div>
+</div>
+<div class="nta-progress-bar"><div class="nta-progress-fill" id="examProgressFill" style="width:0%"></div></div>
+
+<div class="nta-body">
+
+  <!-- Question palette -->
+  <div class="nta-palette-wrap" id="paletteWrap" style="display:none;">
+    <div class="nta-palette-title">Questions</div>
+    <div class="nta-palette" id="qPalette"></div>
+    <div class="nta-palette-legend">
+      <div class="nta-legend-item"><div class="nta-legend-dot lg-answered"></div>Answered</div>
+      <div class="nta-legend-item"><div class="nta-legend-dot lg-marked"></div>Marked</div>
+      <div class="nta-legend-item"><div class="nta-legend-dot lg-unanswered"></div>Not answered</div>
     </div>
-    <div class="navRight">
-      <span class="pill" id="timerPill" style="display:none;">⏱ 00:00</span>
-      <span class="pill" id="progressPill">Q 0/0</span>
-      <button class="btn ghost" id="slideModeBtn" type="button">▦ Slide</button>
-      <button class="btn ghost" id="themeBtn" type="button">🌙</button>
-      <button class="btn ghost" id="printBtn" type="button" style="display:none;">🖨</button>
-    </div>
-  </header>
-
-  <!-- Progress bar -->
-  <div class="exam-progress-bar">
-    <div class="exam-progress-fill" id="examProgressFill" style="width:0%"></div>
   </div>
 
-  <div class="exam-header">
-    <h1 class="exam-title" id="paperTitle">Test Paper</h1>
-    <div class="exam-info" id="paperInfo">Answer all questions carefully.</div>
-  </div>
+  <!-- Active question -->
+  <div id="activeQuestion"></div>
 
-  <!-- Q number dots -->
-  <div class="q-dots-wrap" id="qDots" style="display:none;"></div>
+  <!-- Status -->
+  <div class="sub-status" id="submitStatus" style="text-align:center;margin:10px 0;"></div>
 
-  <!-- Slide nav -->
-  <div class="slide-progress-bar"><div class="slide-progress-fill" id="slideProgressFill"></div></div>
-  <div class="slide-nav">
-    <button class="slide-btn" id="slidePrev">← Prev</button>
-    <span class="slide-counter" id="slideCounter"></span>
-    <button class="slide-btn" id="slideNext">Next →</button>
-  </div>
-
-  <div id="paper"></div>
-
-  <div class="exam-footer">
-    <button class="btn" id="submitBtn" type="button" style="font-weight:800;padding:12px 22px;">Submit Exam</button>
-    <div class="sub-status" id="submitStatus"></div>
-  </div>
-
+  <!-- Result -->
   <div id="result" style="display:none;"></div>
 
-  <div class="modal" id="timeOverModal" style="display:none;">
-    <div class="modal-card">
-      <h3>⏱ Time's Up!</h3>
-      <p>Your exam has been auto-submitted.</p>
-      <button class="btn" id="timeOverOk" type="button">View Results</button>
+</div>
+
+<!-- Bottom nav bar -->
+<div class="nta-bottom-bar" id="bottomBar">
+  <div class="nta-bottom-bar-inner">
+    <button class="nta-arrow-btn" id="btnPrev">←</button>
+    <button class="nta-bar-btn review" id="btnMark">📌 Mark</button>
+    <button class="nta-bar-btn clear"  id="btnClear">✕ Clear</button>
+    <button class="nta-bar-btn next"   id="btnNext">Save & Next →</button>
+    <button class="nta-arrow-btn" id="btnNextArrow">→</button>
+  </div>
+</div>
+
+<!-- Time over modal -->
+<div class="modal" id="timeOverModal" style="display:none;">
+  <div class="modal-card">
+    <h3>⏱ Time's Up!</h3>
+    <p>Your exam has been auto-submitted.</p>
+    <button class="btn" id="timeOverOk" type="button" style="width:100%;justify-content:center;">View Results</button>
+  </div>
+</div>
+
+<!-- Waitlist / Feedback Modal -->
+<div class="wl-modal" id="wlModal" style="display:none;">
+  <div class="wl-modal-card">
+    <div class="wl-modal-head">
+      <h3>👋 How was Test lele?</h3>
+      <button class="wl-close" id="wlClose">✕</button>
+    </div>
+    <p class="wl-sub">Quick feedback? Takes 20 seconds. Helps us improve!</p>
+    <form class="form" id="wlForm" action="https://formspree.io/f/maqpwqev" method="POST">
+      <div class="field">
+        <label class="label">Your Name</label>
+        <input class="input" type="text" name="name" placeholder="Rahul Sharma" required/>
+      </div>
+      <div class="field">
+        <label class="label">Email</label>
+        <input class="input" type="email" name="email" placeholder="rahul@example.com" required/>
+      </div>
+      <div class="field">
+        <label class="label">Rate your experience</label>
+        <select class="input" name="rating">
+          <option value="">Select...</option>
+          <option value="5">⭐⭐⭐⭐⭐ Excellent!</option>
+          <option value="4">⭐⭐⭐⭐ Good</option>
+          <option value="3">⭐⭐⭐ Okay</option>
+          <option value="2">⭐⭐ Needs work</option>
+          <option value="1">⭐ Not good</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="label">Feedback <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+        <textarea class="input" name="feedback" placeholder="What should we improve?" style="min-height:60px;"></textarea>
+      </div>
+      <input type="hidden" name="_subject" value="Test lele — post-exam feedback!"/>
+      <button class="btn" type="submit" style="width:100%;justify-content:center;padding:13px;">Submit Feedback →</button>
+    </form>
+    <div class="wl-success" id="wlSuccess">
+      <div class="tick">🙏</div>
+      <h3>Thank you!</h3>
+      <p>Your feedback means a lot. We'll keep building!</p>
     </div>
   </div>
-
-  <!-- Waitlist Modal -->
-  <div class="wl-modal" id="wlModal" style="display:none;">
-    <div class="wl-modal-card">
-      <div class="wl-modal-head">
-        <h3>👋 How was Test lele?</h3>
-        <button class="wl-close" id="wlClose">✕</button>
-      </div>
-      <p class="wl-sub">Quick feedback? Takes 20 seconds. Helps us improve!</p>
-      <form class="form" id="wlForm" action="https://formspree.io/f/maqpwqev" method="POST">
-        <div class="field">
-          <label class="label">Your Name</label>
-          <input class="input" type="text" name="name" placeholder="Rahul Sharma" required/>
-        </div>
-        <div class="field">
-          <label class="label">Email</label>
-          <input class="input" type="email" name="email" placeholder="rahul@example.com" required/>
-        </div>
-        <div class="field">
-          <label class="label">Rate your experience</label>
-          <select class="input" name="rating">
-            <option value="">Select...</option>
-            <option value="5">⭐⭐⭐⭐⭐ Excellent!</option>
-            <option value="4">⭐⭐⭐⭐ Good</option>
-            <option value="3">⭐⭐⭐ Okay</option>
-            <option value="2">⭐⭐ Needs work</option>
-            <option value="1">⭐ Not good</option>
-          </select>
-        </div>
-        <div class="field">
-          <label class="label">Feedback <span style="font-weight:400;text-transform:none;">(optional)</span></label>
-          <textarea class="input" name="feedback" placeholder="What should we improve?" style="min-height:60px;"></textarea>
-        </div>
-        <input type="hidden" name="_subject" value="Test lele — post-exam feedback!"/>
-        <button class="btn" type="submit" style="width:100%;justify-content:center;padding:13px;">Submit Feedback →</button>
-        <p style="font-size:.74rem;color:var(--muted);text-align:center;margin-top:8px;">No spam. Only launch updates. 🙏</p>
-      </form>
-      <div class="wl-success" id="wlSuccess">
-        <div class="tick">🙏</div>
-        <h3>Thank you!</h3>
-        <p>Your feedback means a lot. We'll keep building!</p>
-      </div>
-    </div>
-  </div>
-</main>
-
-<script>
-// Q-dot progress tracker — injected after exam.js builds questions
-function initQDots(total) {
-  const wrap = document.getElementById('qDots');
-  if (!wrap || total === 0) return;
-  wrap.style.display = 'flex';
-  wrap.innerHTML = '';
-  for (let i = 1; i <= total; i++) {
-    const d = document.createElement('div');
-    d.className = 'q-dot';
-    d.textContent = i;
-    d.id = `qdot-${i}`;
-    d.addEventListener('click', () => {
-      const el = document.getElementById(`q-card-${i}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-    wrap.appendChild(d);
-  }
-}
-
-function markQDotAnswered(qNum) {
-  const d = document.getElementById(`qdot-${qNum}`);
-  if (d) d.classList.add('answered');
-  // Update progress bar
-  const answered = document.querySelectorAll('.q-dot.answered').length;
-  const total = document.querySelectorAll('.q-dot').length;
-  if (total > 0) {
-    document.getElementById('examProgressFill').style.width = `${(answered/total)*100}%`;
-  }
-}
-
-// Expose globally so exam.js can call
-window.initQDots = initQDots;
-window.markQDotAnswered = markQDotAnswered;
-</script>
+</div>
 
 <script src="/static/exam.js"></script>
-
 <script>
 document.getElementById("wlClose")?.addEventListener("click", () => {
   document.getElementById("wlModal").style.display = "none";
@@ -251,9 +458,7 @@ document.getElementById("wlForm")?.addEventListener("submit", async e => {
     } else { btn.disabled = false; btn.textContent = "Try again →"; }
   } catch { btn.disabled = false; btn.textContent = "Try again →"; }
 });
-
-// Show print btn on desktop
-if (window.innerWidth > 600) document.getElementById('printBtn').style.display = 'inline-flex';
 </script>
+
 </body>
 </html>

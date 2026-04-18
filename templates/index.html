@@ -15,7 +15,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css"/>
   <style>
+    /* ── Base ── */
     body { font-family: 'Outfit', sans-serif !important; }
+
+    /* ── Centered page layout ── */
+    .nav-wrap,
+    .page-wrap {
+      width: 100%;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 16px;
+      padding-right: 16px;
+      box-sizing: border-box;
+    }
+    .page-wrap { padding-bottom: 90px; }
 
     /* ── Loading Overlay ── */
     .loading-overlay {
@@ -65,12 +79,12 @@
     }
 
     /* ── Hero ── */
-    .create-hero { padding: 18px 0 6px; }
+    .create-hero { padding: 14px 0 4px; }
     .create-hero h1 {
-      font-size: clamp(1.55rem, 5vw, 2.1rem); font-weight: 900;
-      letter-spacing: -1px; line-height: 1.15; margin-bottom: 6px;
+      font-size: clamp(1.35rem, 5vw, 1.75rem); font-weight: 900;
+      letter-spacing: -1px; line-height: 1.15; margin-bottom: 5px;
     }
-    .create-hero p { font-size: .88rem; color: var(--muted); margin-bottom: 16px; }
+    .create-hero p { font-size: .84rem; color: var(--muted); margin-bottom: 0; line-height: 1.5; }
 
     /* ── Demo chips ── */
     .demo-topics {
@@ -81,7 +95,7 @@
     .demo-topics::-webkit-scrollbar { display: none; }
     .demo-chip {
       background: var(--surface2); border: 1.5px solid var(--border);
-      border-radius: 999px; padding: 7px 14px; font-size: .82rem;
+      border-radius: 999px; padding: 6px 13px; font-size: .79rem;
       font-weight: 700; color: var(--text); cursor: pointer;
       transition: all .15s; white-space: nowrap; flex-shrink: 0;
       font-family: 'Outfit', sans-serif;
@@ -91,46 +105,93 @@
     }
 
     /* ── Preset grid ── */
-    .preset-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+    .preset-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .preset-btn {
       display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
       background: var(--surface2); border: 2px solid var(--border);
-      border-radius: 14px; padding: 12px 13px; cursor: pointer;
+      border-radius: 12px; padding: 10px 12px; cursor: pointer;
       transition: all .15s; font-family: 'Outfit', sans-serif;
       text-align: left; width: 100%;
     }
     .preset-btn:hover { border-color: var(--accent); background: var(--surface); }
     .preset-btn.active { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
     .preset-btn.active .preset-meta { color: var(--accent-fg); opacity: .75; }
-    .preset-icon { font-size: 1.25rem; }
-    .preset-name { font-size: .88rem; font-weight: 800; }
-    .preset-meta { font-size: .7rem; color: var(--muted); font-weight: 600; }
+    .preset-icon { font-size: 1.1rem; }
+    .preset-name { font-size: .85rem; font-weight: 800; }
+    .preset-meta { font-size: .68rem; color: var(--muted); font-weight: 600; }
 
-    /* ── Question Type Selector ── */
-    .qtype-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 9px;
-    }
+    /* ── Question Type ── */
+    .qtype-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .qtype-btn {
       display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 4px;
+      justify-content: center; gap: 3px;
       background: var(--surface2); border: 2px solid var(--border);
-      border-radius: 14px; padding: 14px 10px; cursor: pointer;
+      border-radius: 12px; padding: 11px 8px; cursor: pointer;
       transition: all .15s; font-family: 'Outfit', sans-serif;
       text-align: center; width: 100%;
     }
     .qtype-btn:hover { border-color: var(--accent); background: var(--surface); }
     .qtype-btn.active { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
     .qtype-btn.active .qtype-desc { color: var(--accent-fg); opacity: .75; }
-    .qtype-icon { font-size: 1.0rem; }
-    .qtype-name { font-size: .88rem; font-weight: 800; }
-    .qtype-desc { font-size: .7rem; color: var(--muted); font-weight: 600; }
+    .qtype-icon { font-size: .95rem; }
+    .qtype-name { font-size: .83rem; font-weight: 800; }
+    .qtype-desc { font-size: .67rem; color: var(--muted); font-weight: 600; }
+
+    /* ── Upload section ── */
+    .upload-section {
+      border: 1.5px dashed var(--border);
+      border-radius: 12px;
+      background: var(--surface2);
+      padding: 14px 14px 10px;
+      transition: border-color .15s;
+    }
+    .upload-section:hover { border-color: var(--accent); }
+    .upload-section-label {
+      font-size: .72rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .upload-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .upload-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 8px 14px;
+      font-size: .81rem; font-weight: 700; color: var(--text);
+      cursor: pointer; font-family: 'Outfit', sans-serif;
+      transition: all .15s;
+    }
+    .upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .upload-btn input { display: none; }
+    .upload-previews { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .upload-thumb {
+      position: relative; width: 60px; height: 60px;
+      border-radius: 8px; overflow: hidden;
+      border: 1.5px solid var(--border); background: var(--surface); flex-shrink: 0;
+    }
+    .upload-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .upload-thumb .rm-upload {
+      position: absolute; top: 2px; right: 2px;
+      background: rgba(0,0,0,.65); color: #fff; border: none;
+      border-radius: 50%; width: 18px; height: 18px;
+      font-size: .6rem; cursor: pointer; display: grid; place-items: center; line-height: 1;
+    }
+    .upload-pdf-item {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 7px 10px; font-size: .78rem;
+      font-weight: 600; color: var(--text); position: relative; max-width: 200px;
+    }
+    .upload-pdf-item .rm-upload {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: .8rem; margin-left: auto; padding: 0 2px;
+    }
+    .upload-pdf-item .rm-upload:hover { color: var(--red); }
+    .upload-hint { font-size: .72rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
 
     /* ── Generate button ── */
     .submit-btn {
-      width: 100%; justify-content: center; padding: 15px;
-      font-size: 1rem; font-weight: 800; border-radius: 14px; letter-spacing: -.2px;
+      width: 100%; justify-content: center; padding: 14px;
+      font-size: .97rem; font-weight: 800; border-radius: 12px; letter-spacing: -.2px;
     }
     @media (max-width: 600px) {
       .submit-btn { position: sticky; bottom: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.22); }
@@ -139,36 +200,38 @@
     /* ── Waitlist section ── */
     .wl-section {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 24px 20px; margin-top: 14px;
+      border-radius: var(--radius); padding: 20px 18px; margin-top: 12px;
       text-align: center; box-shadow: var(--shadow);
     }
-    .wl-section .rocket { font-size: 1.8rem; margin-bottom: 8px; }
-    .wl-section h2 { font-size: 1.15rem; font-weight: 900; margin-bottom: 6px; }
-    .wl-section p { color: var(--muted); font-size: .86rem; margin-bottom: 14px; line-height: 1.6; }
-    .wl-features { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; }
+    .wl-section .rocket { font-size: 1.6rem; margin-bottom: 6px; }
+    .wl-section h2 { font-size: 1.05rem; font-weight: 900; margin-bottom: 5px; }
+    .wl-section p { color: var(--muted); font-size: .83rem; margin-bottom: 12px; line-height: 1.55; }
+    .wl-features { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 14px; }
     .wl-feat {
       background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 999px; padding: 4px 12px; font-size: .76rem; color: var(--muted); font-weight: 600;
+      border-radius: 999px; padding: 3px 11px; font-size: .74rem; color: var(--muted); font-weight: 600;
     }
     .wl-btn {
       display: inline-flex; align-items: center; gap: 8px;
       background: var(--accent); color: var(--accent-fg); border: none;
-      border-radius: var(--radius-sm); padding: 12px 24px; font-size: .95rem;
+      border-radius: var(--radius-sm); padding: 11px 22px; font-size: .9rem;
       font-weight: 800; cursor: pointer; transition: opacity .15s; font-family: 'Outfit', sans-serif;
     }
     .wl-btn:hover { opacity: .88; }
 
+    /* ── Card compact on index ── */
+    .main-card { padding: 18px 16px; }
+    .main-card .form { gap: 14px; }
+
     /* ── Mobile ── */
     @media (max-width: 600px) {
-      .page { padding: 10px 16px 90px; }
-      .nav { padding: 12px 0 16px; }
+      .nav-wrap,
+      .page-wrap { padding-left: 14px; padding-right: 14px; }
+      .page-wrap { padding-bottom: 90px; }
+      .nav { padding: 12px 0 14px; }
       .brandSub { display: none; }
       .btn.ghost { padding: 8px 10px; font-size: .8rem; }
-      .card { padding: 20px 18px; }
-      .row2 { grid-template-columns: 1fr 1fr !important; gap: 9px; }
       .input, select, textarea { font-size: 16px !important; }
-      .qtype-grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
-      .qtype-name { font-size: .78rem; }
     }
   </style>
 </head>
@@ -188,7 +251,7 @@
   </div>
 </div>
 
-<main class="page">
+<div class="nav-wrap">
   <header class="nav">
     <div class="brand">
       <div class="mark">TL</div>
@@ -202,14 +265,16 @@
       <button class="btn ghost" id="themeBtn" type="button">🌙</button>
     </div>
   </header>
+</div>
+
+<div class="page-wrap">
 
   <div class="create-hero">
-    <h1>Create your<br/>practice test ⚡</h1>
-    <p>Pick a topic, hit generate — full test ready in seconds.
-    Want same concept or formula based Questions just write question or provide photo it generate for you. </p>
+    <h1>Create your practice test ⚡</h1>
+    <p>Pick a topic, hit generate — full test ready in seconds. Upload a photo or PDF to generate from your own content.</p>
   </div>
 
-  <div class="card" style="margin-top:14px;">
+  <div class="card main-card" style="margin-top:12px;">
     <form class="form" id="mainForm">
 
       <!-- Topic -->
@@ -220,9 +285,30 @@
         <span class="hint">Keep it focused to one chapter for best results.</span>
       </div>
 
+      <!-- Photo / PDF Upload -->
+      <div class="field">
+        <div class="upload-section" id="uploadSection">
+          <div class="upload-section-label">📎 Upload to generate from your content</div>
+          <div class="upload-btns">
+            <label class="upload-btn">
+              📷 Photo
+              <input type="file" id="photoUploadInput" accept="image/*" multiple/>
+            </label>
+            <label class="upload-btn">
+              📄 PDF
+              <input type="file" id="pdfUploadInput" accept="application/pdf" multiple/>
+            </label>
+          </div>
+          <div class="upload-previews" id="uploadPreviews"></div>
+          <div class="upload-hint" id="uploadHint" style="display:none;">
+            ✅ Files will be used to generate questions. Topic field is optional when uploading.
+          </div>
+        </div>
+      </div>
+
       <!-- Example chips -->
       <div>
-        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Try an example →</div>
+        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;">Try an example →</div>
         <div class="demo-topics">
           <span class="demo-chip" data-topic="JEE Physics – Current Electricity">⚡ JEE Physics</span>
           <span class="demo-chip" data-topic="NEET Biology – Cell Structure and Function">🧬 NEET Biology</span>
@@ -235,7 +321,7 @@
 
       <!-- Exam Format Presets -->
       <div class="field">
-        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Quick format →</div>
+        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;">Quick format →</div>
         <div class="preset-grid">
           <button type="button" class="preset-btn" data-preset="neet">
             <span class="preset-icon">🧬</span>
@@ -262,7 +348,7 @@
 
       <!-- Question Type Selector -->
       <div class="field">
-        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Question type →</div>
+        <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;">Question type →</div>
         <div class="qtype-grid">
           <button type="button" class="qtype-btn active" data-qtype="mcq">
             <span class="qtype-icon">🔘</span>
@@ -336,10 +422,10 @@
     <p style="font-size:.74rem;color:var(--muted);margin-top:10px;">No spam. Only launch updates. 🙏</p>
   </div>
 
-  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 16px;font-size:.8rem;color:var(--muted);margin-top:12px;display:flex;align-items:center;gap:8px;">
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:.78rem;color:var(--muted);margin-top:10px;display:flex;align-items:center;gap:8px;">
     🤖 <span><b>AI Powered</b> — Questions generated by Groq (Llama 3.3) in real-time.</span>
   </div>
-</main>
+</div>
 
 <!-- Waitlist Modal -->
 <div class="wl-modal" id="wlModal" style="display:none;">
@@ -478,6 +564,77 @@
 <button class="tele-bubble-btn" id="teleMini" style="display:none;" title="TeLe">🤖</button>
 
 <script>
+// ── Theme ──
+(function() {
+  const t = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", t);
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme") || "light";
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+  });
+})();
+
+// ── Upload handling ──
+const uploadedPhotos = [];
+const uploadedPDFs   = [];
+
+function renderUploadPreviews() {
+  const container = document.getElementById('uploadPreviews');
+  const hint = document.getElementById('uploadHint');
+  container.innerHTML = '';
+
+  uploadedPhotos.forEach((item, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'upload-thumb';
+    thumb.innerHTML = `<img src="${item.dataUrl}" alt="photo"/>
+      <button class="rm-upload" data-type="photo" data-idx="${i}">✕</button>`;
+    container.appendChild(thumb);
+  });
+
+  uploadedPDFs.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'upload-pdf-item';
+    const name = item.file.name.length > 20 ? item.file.name.slice(0, 18) + '…' : item.file.name;
+    el.innerHTML = `📄 ${name}
+      <button class="rm-upload" data-type="pdf" data-idx="${i}">✕</button>`;
+    container.appendChild(el);
+  });
+
+  hint.style.display = (uploadedPhotos.length + uploadedPDFs.length > 0) ? 'block' : 'none';
+
+  container.querySelectorAll('.rm-upload').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.type;
+      const idx = Number(btn.dataset.idx);
+      if (type === 'photo') uploadedPhotos.splice(idx, 1);
+      else uploadedPDFs.splice(idx, 1);
+      renderUploadPreviews();
+    });
+  });
+}
+
+document.getElementById('photoUploadInput').addEventListener('change', function() {
+  Array.from(this.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedPhotos.push({ file, dataUrl: e.target.result });
+      renderUploadPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  this.value = '';
+});
+
+document.getElementById('pdfUploadInput').addEventListener('change', function() {
+  Array.from(this.files).forEach(file => {
+    uploadedPDFs.push({ file });
+    renderUploadPreviews();
+  });
+  this.value = '';
+});
+
 // ── Fun Facts ──
 const FUN_FACTS = {
   default: [
@@ -577,7 +734,7 @@ document.querySelectorAll(".preset-btn").forEach(btn => {
   });
 });
 
-// ── Question Type Selector ──
+// ── Question Type ──
 let selectedQType = "mcq";
 document.querySelectorAll(".qtype-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -616,33 +773,35 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
   showLoading(topic);
 
   try {
-    const res = await fetch("/api/generate-questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        topic,
-        exam_format:   examFormat,
-        num_questions: numQ,
-        difficulty,
-        timer_minutes: timerMinutes,
-        question_type: selectedQType,
-      })
-    });
-    const data = await res.json();
+    const hasFiles = uploadedPhotos.length > 0 || uploadedPDFs.length > 0;
+    let data;
+    if (hasFiles) {
+      const formData = new FormData();
+      formData.append('topic', topic);
+      formData.append('exam_format', examFormat);
+      formData.append('num_questions', numQ);
+      formData.append('difficulty', difficulty);
+      formData.append('timer_minutes', timerMinutes);
+      formData.append('question_type', selectedQType);
+      uploadedPhotos.forEach((item, i) => formData.append(`photo_${i}`, item.file));
+      uploadedPDFs.forEach((item, i) => formData.append(`pdf_${i}`, item.file));
+      const res = await fetch("/api/generate-questions-upload", { method: "POST", body: formData });
+      data = await res.json();
+    } else {
+      const res = await fetch("/api/generate-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, exam_format: examFormat, num_questions: numQ, difficulty, timer_minutes: timerMinutes, question_type: selectedQType })
+      });
+      data = await res.json();
+    }
+
     if (!data.ok) throw new Error(data.error || "AI generation failed");
 
     const storeRes = await fetch("/api/store-exam", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        topic,
-        questions:     data.questions,
-        timer_minutes: timerMinutes,
-        difficulty,
-        mode,
-        exam_format:   examFormat,
-        question_type: selectedQType,
-      })
+      body: JSON.stringify({ topic, questions: data.questions, timer_minutes: timerMinutes, difficulty, mode, exam_format: examFormat, question_type: selectedQType })
     });
     const stored = await storeRes.json();
     window.location.href = `/exam/${stored.exam_id}`;
