@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 
 # Load .env file
 load_dotenv()
-
+print("KEY:", os.getenv("GROQ_API_KEY"))
 # ─────────────────────────────────────────
 # App Setup
 # ─────────────────────────────────────────
@@ -309,6 +309,7 @@ async def generate_questions_ai(request: Request):
             {"ok": False, "error": "GROQ_API_KEY not set in .env file."},
             status_code=500
         )
+
 
     # Pick the right prompt
     if question_type == "written":
