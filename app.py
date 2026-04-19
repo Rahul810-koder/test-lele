@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 # Load .env file
 load_dotenv()
 print("KEY:", os.getenv("GROQ_API_KEY"))
+
 # ─────────────────────────────────────────
 # App Setup
 # ─────────────────────────────────────────
