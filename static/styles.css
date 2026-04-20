@@ -684,3 +684,32 @@ hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
   .q-text { font-size: .91rem; }
   .opt    { padding: 11px 12px; }
 }
+/* ════════════════════════════════════
+   Answer Feedback Boxes
+════════════════════════════════════ */
+
+.feedback-correct,
+.feedback-incorrect {
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-top: 10px;
+  font-size: .86rem;
+  line-height: 1.6;
+}
+
+.feedback-correct {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #14532d !important;
+}
+
+.feedback-incorrect {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #7f1d1d !important;
+}
+
+.feedback-correct *,
+.feedback-incorrect * {
+  color: inherit !important;
+}

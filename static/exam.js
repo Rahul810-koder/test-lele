@@ -130,20 +130,21 @@ function renderQuestion(idx) {
 
   // Q counter
   const container = $("activeQuestion");
-  const cleanQ = q.q.replace(/\[(EASY|MEDIUM|HARD)\]\s*/i, "").trim();
+ const cleanQ = q.q.replace(/\[(EASY|MEDIUM|HARD)\]\s*/i, "").trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const isAnswered = ANSWERS[qid] && String(ANSWERS[qid]).trim();
   const isMarked   = MARKED[qid];
 
   let optionsHtml = "";
   if (q.type === "mcq" || !q.type) {
     const options = q.options || [];
+    console.log("Q options:", JSON.stringify(options));
     optionsHtml = `<div class="nta-options" id="ntaOptions">` +
       options.map(opt => {
         const selected = ANSWERS[qid] === opt.key ? "selected" : "";
         return `
           <div class="nta-opt ${selected}" data-key="${opt.key}">
             <div class="nta-opt-key">${opt.key}</div>
-            <div class="nta-opt-text">${opt.text}</div>
+           <div class="nta-opt-text">${String(opt.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
           </div>`;
       }).join("") +
     `</div>`;

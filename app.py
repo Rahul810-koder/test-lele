@@ -420,9 +420,10 @@ async def generate_questions_ai(request: Request):
             )
 
         except Exception as e:
-            last_error = f"Error on attempt {attempt + 1}: {str(e)}"
-            time.sleep(1)
-
+         last_error = f"Error on attempt {attempt + 1}: {str(e)}"
+         print("ACTUAL ERROR:", e)
+         time.sleep(1)
+    
     return JSONResponse({"ok": False, "error": last_error}, status_code=500)
 
 
