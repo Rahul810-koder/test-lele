@@ -713,3 +713,69 @@ hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
 .feedback-incorrect * {
   color: inherit !important;
 }
+/* ════════════════════════════════════
+   Responsive Fix — index page
+════════════════════════════════════ */
+
+html { overflow-x: hidden; }
+
+.nav-wrap,
+.page-wrap {
+  width: 100%;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box;
+}
+
+/* All direct children must stay inside */
+.page-wrap > *,
+.main-card,
+.preset-grid,
+.qtype-grid,
+.row2 {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .nav-wrap,
+  .page-wrap { padding-left: 14px; padding-right: 14px; }
+
+  /* Grids tighten but never overflow */
+  .preset-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .qtype-grid  { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .preset-btn  { padding: 8px 8px; }
+  .qtype-btn   { padding: 9px 4px; }
+  .preset-name { font-size: .78rem; }
+  .qtype-name  { font-size: .75rem; }
+  .qtype-desc  { font-size: .6rem; }
+
+  /* row2 — two col on mobile is fine but must be constrained */
+  .row2 { grid-template-columns: 1fr 1fr !important; gap: 8px; }
+  .row2 > * { min-width: 0; }
+
+  /* Demo chips scroll horizontally, never wrap off-screen */
+  .demo-topics {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  /* Generate button sticky */
+  .submit-btn {
+    position: sticky;
+    bottom: 16px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.22);
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .nav-wrap,
+  .page-wrap { padding-left: 24px; padding-right: 24px; }
+  .preset-grid { grid-template-columns: repeat(2, 1fr); }
+  .qtype-grid  { grid-template-columns: repeat(3, 1fr); }
+}
