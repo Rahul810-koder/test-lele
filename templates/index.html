@@ -193,10 +193,7 @@
       width: 100%; justify-content: center; padding: 14px;
       font-size: .97rem; font-weight: 800; border-radius: 12px; letter-spacing: -.2px;
     }
-    @media (max-width: 600px) {
-      .submit-btn { position: sticky; bottom: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.22); }
-    }
-
+  
     /* ── Waitlist section ── */
     .wl-section {
       background: var(--surface); border: 1px solid var(--border);
@@ -228,39 +225,6 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { overflow-x: hidden; max-width: 100%; }
 
-/* ── Mobile ── */
-@media (max-width: 600px) {
-  .nav-wrap,
-  .page-wrap { padding-left: 14px; padding-right: 14px; }
-  .page-wrap { padding-bottom: 90px; }
-  .nav { padding: 12px 0 14px; }
-  .brandSub { display: none; }
-  .btn.ghost { padding: 8px 10px; font-size: .8rem; }
-  .input, select, textarea { font-size: 16px !important; }
-
-  /* Fix preset + qtype grids not fitting */
-  .preset-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
-  .qtype-grid  { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .preset-btn  { padding: 8px 10px; }
-  .qtype-btn   { padding: 9px 6px; }
-  .preset-name { font-size: .8rem; }
-  .qtype-name  { font-size: .78rem; }
-  .qtype-desc  { font-size: .62rem; }
-
-  /* Fix row2 (questions+timer, difficulty+mode) */
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-  /* Fix demo chips not overflowing page */
-  .demo-topics { padding-right: 14px; }
-}
-
-/* ── Tablet ── */
-@media (min-width: 601px) and (max-width: 900px) {
-  .page-wrap { padding-left: 24px; padding-right: 24px; }
-  .preset-grid { grid-template-columns: repeat(2, 1fr); }
-  .qtype-grid  { grid-template-columns: repeat(3, 1fr); }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-}
   </style>
 </head>
 <body>
