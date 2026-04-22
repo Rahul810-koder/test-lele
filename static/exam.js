@@ -331,7 +331,7 @@ async function submitExam(time_over = false) {
 
 // ── Share ──
 function buildShareText(res) {
-  const topic = EXAM?.title || "a topic";
+  const topic = (EXAM?.title || "a topic").replace(/^Test:\s*/i, "");
   return `I just scored ${res.percentage}% (${res.grade}) on a "${topic}" practice test on Test lele! 🎯\nTry it free → https://test-lele-1.onrender.com`;
 }
 
