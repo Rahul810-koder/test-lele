@@ -231,12 +231,18 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 <!-- Loading Overlay with Fun Facts -->
 <div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-brand">
     <div class="loading-mark">TL</div>
     <span class="loading-name">Test lele</span>
   </div>
-  <div class="loading-spinner"></div>
-  <div class="loading-status">Generating your test<span class="loading-dots"></span></div>
+  <div class="loading-status" id="loadingStatus">Generating your test<span class="loading-dots"></span></div>
+  <div style="width:100%;max-width:340px;margin:18px 0 8px;">
+    <div style="background:var(--border);border-radius:999px;height:8px;overflow:hidden;">
+      <div id="genProgressBar" style="height:100%;background:var(--accent);border-radius:999px;width:0%;transition:width .4s ease;"></div>
+    </div>
+    <div id="genProgressText" style="font-size:.78rem;color:var(--muted);margin-top:6px;font-weight:600;">0 / 0 questions ready</div>
+  </div>
   <div class="funfact-card" id="funfactCard">
     <div class="funfact-label">💡 Did you know?</div>
     <div class="funfact-text" id="funfactText">Loading a fun fact...</div>
@@ -768,35 +774,52 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
   showLoading(topic);
 
   try {
-    const hasFiles = uploadedPhotos.length > 0 || uploadedPDFs.length > 0;
-    let data;
-    if (hasFiles) {
-      const formData = new FormData();
-      formData.append('topic', topic);
-      formData.append('exam_format', examFormat);
-      formData.append('num_questions', numQ);
-      formData.append('difficulty', difficulty);
-      formData.append('timer_minutes', timerMinutes);
-      formData.append('question_type', selectedQType);
-      uploadedPhotos.forEach((item, i) => formData.append(`photo_${i}`, item.file));
-      uploadedPDFs.forEach((item, i) => formData.append(`pdf_${i}`, item.file));
-      const res = await fetch("/api/generate-questions-upload", { method: "POST", body: formData });
-      data = await res.json();
-    } else {
-      const res = await fetch("/api/generate-questions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, exam_format: examFormat, num_questions: numQ, difficulty, timer_minutes: timerMinutes, question_type: selectedQType })
-      });
-      data = await res.json();
+    const questions = [];
+    const progressBar  = document.getElementById("genProgressBar");
+    const progressText = document.getElementById("genProgressText");
+
+    const res = await fetch("/api/generate-questions-stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic, exam_format: examFormat, num_questions: numQ, difficulty, question_type: selectedQType })
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.error) throw new Error(data.error);
+          if (data.question) {
+            questions.push(data.question);
+            const pct = Math.round((data.index / data.total) * 100);
+            progressBar.style.width = pct + "%";
+            progressText.textContent = `${data.index} / ${data.total} questions ready`;
+          }
+          if (data.done) break;
+        } catch (parseErr) {
+          console.error("Parse error:", parseErr);
+        }
+      }
     }
 
-    if (!data.ok) throw new Error(data.error || "AI generation failed");
+    if (questions.length === 0) throw new Error("No questions generated");
 
     const storeRes = await fetch("/api/store-exam", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic, questions: data.questions, timer_minutes: timerMinutes, difficulty, mode, exam_format: examFormat, question_type: selectedQType })
+      body: JSON.stringify({ topic, questions, timer_minutes: timerMinutes, difficulty, mode, exam_format: examFormat, question_type: selectedQType })
     });
     const stored = await storeRes.json();
     window.location.href = `/exam/${stored.exam_id}`;
@@ -808,7 +831,6 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
     alert("Error: " + err.message);
   }
 });
-
 // ── Waitlist Modal ──
 const wlModal = document.getElementById("wlModal");
 document.getElementById("waitlistBtn")?.addEventListener("click",  () => wlModal.style.display = "grid");

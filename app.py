@@ -593,3 +593,123 @@ async def api_submit_exam(exam_id: str, request: Request):
     exam["submitted"] = True
     exam["result"]    = result
     return {"ok": True, "submitted": True, "result": result}
+from fastapi.responses import StreamingResponse
+import asyncio
+
+@app.post("/api/generate-questions-stream")
+async def generate_questions_stream(request: Request):
+    body = await request.json()
+
+    topic         = clean_text(body.get("topic", "General Knowledge")) or "General Knowledge"
+    exam_format   = body.get("exam_format", "CBSE")
+    num_questions = safe_int(body.get("num_questions", 10), 10, 3, 30)
+    question_type = body.get("question_type", "mcq").lower()
+
+    difficulty_map = {
+        "JEE":        "hard, conceptual, numerical, multi-step reasoning",
+        "NEET":       "medium-hard, biology/chemistry/physics based, factual + application",
+        "CBSE":       "medium, NCERT-aligned, definition and application based",
+        "Quick Test": "easy to medium, fast recall",
+    }
+    difficulty_desc = difficulty_map.get(exam_format, "medium, well-balanced")
+
+    api_key = os.environ.get("GROQ_API_KEY", "")
+    if not api_key:
+        async def err():
+            yield f"data: {json.dumps({'error': 'GROQ_API_KEY not set'})}\n\n"
+        return StreamingResponse(err(), media_type="text/event-stream")
+
+    from groq import Groq
+    client = Groq(api_key=api_key)
+
+    seen_questions = set()
+
+    async def generate():
+        generated = 0
+        attempts  = 0
+        max_attempts = num_questions * 3
+
+        while generated < num_questions and attempts < max_attempts:
+            attempts += 1
+            try:
+                if question_type == "written":
+                    prompt = build_written_prompt(topic, exam_format, 1, difficulty_desc)
+                elif question_type == "mix":
+                    q_type = "written" if generated % 3 == 2 else "mcq"
+                    if q_type == "written":
+                        prompt = build_written_prompt(topic, exam_format, 1, difficulty_desc)
+                    else:
+                        prompt = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
+                else:
+                    prompt = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
+
+                # Tell AI to make it different
+                if seen_questions:
+                    prompt += f"\n\nIMPORTANT: Do NOT repeat these questions: {list(seen_questions)[:5]}"
+
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=800,
+                    temperature=0.9,
+                )
+                raw = response.choices[0].message.content.strip()
+                parsed = parse_ai_response(raw)
+
+                if not isinstance(parsed, list) or not parsed:
+                    continue
+
+                q = parsed[0]
+                q_text = str(q.get("q", "")).strip()
+                if not q_text or q_text in seen_questions:
+                    continue
+
+                seen_questions.add(q_text)
+                q_type_actual = str(q.get("type", "written" if question_type == "written" else "mcq")).lower()
+
+                if q_type_actual == "written":
+                    model_answer = str(q.get("model_answer", "")).strip()
+                    if not model_answer:
+                        continue
+                    valid_q = {
+                        "type": "written",
+                        "q": q_text,
+                        "marks": safe_int(q.get("marks", 5), 5, 2, 10),
+                        "key_points": q.get("key_points", []) if isinstance(q.get("key_points"), list) else [],
+                        "model_answer": model_answer,
+                    }
+                else:
+                    options = normalize_options(q.get("options", []))
+                    if len(options) < 4:
+                        rebuilt = [
+                            {"key": k, "text": str(q.get(k, "")).strip()}
+                            for k in ["A", "B", "C", "D"]
+                            if str(q.get(k, "")).strip()
+                        ]
+                        if len(rebuilt) == 4:
+                            options = rebuilt
+                    if len(options) != 4:
+                        continue
+                    answer = str(q.get("answer", "A")).strip().upper()
+                    if answer not in ["A", "B", "C", "D"]:
+                        answer = "A"
+                    valid_q = {
+                        "type": "mcq",
+                        "q": q_text,
+                        "options": options,
+                        "answer": answer,
+                        "explain": str(q.get("explain", "")).strip() or "See correct option.",
+                    }
+
+                generated += 1
+                yield f"data: {json.dumps({'question': valid_q, 'index': generated, 'total': num_questions})}\n\n"
+                await asyncio.sleep(0.1)
+
+            except Exception as e:
+                print(f"Stream error on attempt {attempts}: {e}")
+                await asyncio.sleep(0.5)
+                continue
+
+        yield f"data: {json.dumps({'done': True, 'total_generated': generated})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")

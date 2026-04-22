@@ -218,11 +218,16 @@ function showAnswerReveal(q, qid) {
   const userAns = ANSWERS[qid] || "—";
   const correct = userAns === q.answer;
   box.innerHTML = `
-    <div class="nta-answer-box" style="${correct ? '' : 'background:#fef2f2;border-color:#fca5a5;'}">
-      <b>${correct ? "✅ Correct!" : "❌ Incorrect"}</b><br/>
-      <b>Your answer:</b> ${userAns}<br/>
-      <b>Correct:</b> ${q.answer}${correctOpt ? " — " + correctOpt.text : ""}<br/>
-      <b>Explanation:</b> ${q.explain || "—"}
+    <div style="
+      margin-top:14px; padding:14px 16px; border-radius:12px; font-size:.87rem; line-height:1.65;
+      background:${correct ? '#dcfce7' : '#fee2e2'};
+      border:1.5px solid ${correct ? '#86efac' : '#fca5a5'};
+      color:#111110;
+    ">
+      <b style="color:${correct ? '#15803d' : '#b91c1c'};">${correct ? "✅ Correct!" : "❌ Incorrect"}</b><br/>
+      <span style="color:#333;"><b>Your answer:</b> ${userAns}</span><br/>
+      <span style="color:#333;"><b>Correct:</b> ${q.answer}${correctOpt ? " — " + correctOpt.text : ""}</span><br/>
+      <span style="color:#333;"><b>Explanation:</b> ${q.explain || "—"}</span>
     </div>
   `;
 }
@@ -327,7 +332,7 @@ async function submitExam(time_over = false) {
 // ── Share ──
 function buildShareText(res) {
   const topic = EXAM?.title || "a topic";
-  return `I just scored ${res.percentage}% (${res.grade}) on a "${topic}" practice test on Test lele! 🎯\nTry it free → https://test-lele-production.up.railway.app`;
+  return `I just scored ${res.percentage}% (${res.grade}) on a "${topic}" practice test on Test lele! 🎯\nTry it free → https://test-lele-1.onrender.com`;
 }
 
 // ── Time table ──
