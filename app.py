@@ -12,6 +12,8 @@ import uuid
 import json
 import time
 from typing import List, Dict, Any
+import asyncio
+from groq import Groq
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -594,7 +596,6 @@ async def api_submit_exam(exam_id: str, request: Request):
     exam["result"]    = result
     return {"ok": True, "submitted": True, "result": result}
 from fastapi.responses import StreamingResponse
-import asyncio
 
 @app.post("/api/generate-questions-stream")
 async def generate_questions_stream(request: Request):
@@ -619,15 +620,23 @@ async def generate_questions_stream(request: Request):
             yield f"data: {json.dumps({'error': 'GROQ_API_KEY not set'})}\n\n"
         return StreamingResponse(err(), media_type="text/event-stream")
 
-    from groq import Groq
     client = Groq(api_key=api_key)
-
     seen_questions = set()
+
+    def call_groq(prompt):
+        """Synchronous Groq call — runs in thread pool."""
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=800,
+            temperature=0.9,
+        )
+        return response.choices[0].message.content.strip()
 
     async def generate():
         generated = 0
         attempts  = 0
-        max_attempts = num_questions * 3
+        max_attempts = num_questions * 4
 
         while generated < num_questions and attempts < max_attempts:
             attempts += 1
@@ -635,27 +644,25 @@ async def generate_questions_stream(request: Request):
                 if question_type == "written":
                     prompt = build_written_prompt(topic, exam_format, 1, difficulty_desc)
                 elif question_type == "mix":
-                    q_type = "written" if generated % 3 == 2 else "mcq"
-                    if q_type == "written":
+                    if generated % 3 == 2:
                         prompt = build_written_prompt(topic, exam_format, 1, difficulty_desc)
                     else:
                         prompt = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
                 else:
                     prompt = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
 
-                # Tell AI to make it different
                 if seen_questions:
-                    prompt += f"\n\nIMPORTANT: Do NOT repeat these questions: {list(seen_questions)[:5]}"
+                    avoid = list(seen_questions)[:5]
+                    prompt += f"\n\nIMPORTANT: Do NOT generate questions similar to: {avoid}"
 
-                response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=800,
-                    temperature=0.9,
-                )
-                raw = response.choices[0].message.content.strip()
+                # Run blocking Groq call in thread pool
+                loop = asyncio.get_event_loop()
+                raw = await loop.run_in_executor(None, call_groq, prompt)
+
+                if not raw:
+                    continue
+
                 parsed = parse_ai_response(raw)
-
                 if not isinstance(parsed, list) or not parsed:
                     continue
 
@@ -703,11 +710,10 @@ async def generate_questions_stream(request: Request):
 
                 generated += 1
                 yield f"data: {json.dumps({'question': valid_q, 'index': generated, 'total': num_questions})}\n\n"
-                await asyncio.sleep(0.1)
 
             except Exception as e:
-                print(f"Stream error on attempt {attempts}: {e}")
-                await asyncio.sleep(0.5)
+                print(f"Stream error attempt {attempts}: {e}")
+                await asyncio.sleep(0.3)
                 continue
 
         yield f"data: {json.dumps({'done': True, 'total_generated': generated})}\n\n"
