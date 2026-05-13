@@ -422,9 +422,9 @@ async def generate_questions_ai(request: Request):
             )
 
         except Exception as e:
-         last_error = f"Error on attempt {attempt + 1}: {str(e)}"
-         print("ACTUAL ERROR:", e)
-         time.sleep(1)
+            last_error = f"Error on attempt {attempt + 1}: {str(e)}"
+            print("ACTUAL ERROR:", e)
+            time.sleep(1)
     
     return JSONResponse({"ok": False, "error": last_error}, status_code=500)
 
@@ -638,6 +638,8 @@ async def generate_questions_stream(request: Request):
         attempts  = 0
         max_attempts = num_questions * 4
 
+        print(f"🚀 Starting generation: topic='{topic}', format='{exam_format}', type='{question_type}', qty={num_questions}")
+
         while generated < num_questions and attempts < max_attempts:
             attempts += 1
             try:
@@ -657,18 +659,23 @@ async def generate_questions_stream(request: Request):
 
                 # Run blocking Groq call in thread pool
                 loop = asyncio.get_event_loop()
+                print(f"  Attempt {attempts}/{max_attempts}: Calling Groq API...")
                 raw = await loop.run_in_executor(None, call_groq, prompt)
+                print(f"  Got response: {len(raw) if raw else 0} chars")
 
                 if not raw:
+                    print(f"  ❌ Empty response")
                     continue
 
                 parsed = parse_ai_response(raw)
                 if not isinstance(parsed, list) or not parsed:
+                    print(f"  ❌ Parse failed or empty list")
                     continue
 
                 q = parsed[0]
                 q_text = str(q.get("q", "")).strip()
                 if not q_text or q_text in seen_questions:
+                    print(f"  ⚠️  Empty or duplicate question")
                     continue
 
                 seen_questions.add(q_text)
@@ -677,6 +684,7 @@ async def generate_questions_stream(request: Request):
                 if q_type_actual == "written":
                     model_answer = str(q.get("model_answer", "")).strip()
                     if not model_answer:
+                        print(f"  ⚠️  No model answer")
                         continue
                     valid_q = {
                         "type": "written",
@@ -696,6 +704,7 @@ async def generate_questions_stream(request: Request):
                         if len(rebuilt) == 4:
                             options = rebuilt
                     if len(options) != 4:
+                        print(f"  ⚠️  Invalid options: {len(options)}/4")
                         continue
                     answer = str(q.get("answer", "A")).strip().upper()
                     if answer not in ["A", "B", "C", "D"]:
@@ -709,13 +718,20 @@ async def generate_questions_stream(request: Request):
                     }
 
                 generated += 1
+                print(f"  ✅ Generated Q{generated}/{num_questions}")
                 yield f"data: {json.dumps({'question': valid_q, 'index': generated, 'total': num_questions})}\n\n"
 
             except Exception as e:
-                print(f"Stream error attempt {attempts}: {e}")
+                print(f"  ❌ Stream error attempt {attempts}: {e}")
+                import traceback
+                traceback.print_exc()
                 await asyncio.sleep(0.3)
                 continue
 
-        yield f"data: {json.dumps({'done': True, 'total_generated': generated})}\n\n"
+        print(f"💯 Generation complete: {generated}/{num_questions} questions")
+        if generated < num_questions:
+            yield f"data: {json.dumps({'error': f'Only generated {generated}/{num_questions} questions. Please try again.'})}\n\n"
+        else:
+            yield f"data: {json.dumps({'done': True, 'total_generated': generated})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
