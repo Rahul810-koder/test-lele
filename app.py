@@ -10,20 +10,21 @@ import os
 import re
 import uuid
 import json
+import asyncio
 import time
 from typing import List, Dict, Any
-import asyncio
-from groq import Groq
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
+from groq import Groq
 
 # Load .env file
 load_dotenv()
 print("KEY:", os.getenv("GROQ_API_KEY"))
+
 
 # ─────────────────────────────────────────
 # App Setup
@@ -94,13 +95,15 @@ def normalize_options(raw_options) -> List[Dict[str, str]]:
                         "text": str(v).strip()
                     })
 
-    # Deduplicate by key
+    # Deduplicate by key — log if a duplicate is found
     seen = set()
     result = []
     for o in normalized:
         if o["key"] not in seen:
             seen.add(o["key"])
             result.append(o)
+        else:
+            print(f"[WARN] normalize_options: duplicate key '{o['key']}' dropped")
 
     key_order = {"A": 0, "B": 1, "C": 2, "D": 3}
     result.sort(key=lambda x: key_order.get(x["key"], 99))
@@ -119,7 +122,7 @@ def parse_ai_response(raw: str) -> List[Dict[str, Any]]:
 def score_written_answer(user_text: str, key_points: List[str]) -> float:
     """
     Score a written answer 0-100 using keyword matching against key points.
-    Penalizes very short answers.
+    Penalizes very short answers. Returns 0 if key_points is empty.
     """
     u = clean_text(user_text).lower()
     if not u:
@@ -130,8 +133,9 @@ def score_written_answer(user_text: str, key_points: List[str]) -> float:
         for w in re.findall(r"[a-zA-Z]{3,}", kp.lower()):
             target.add(w)
 
+    # FIX: empty key_points should not give a free 50 — return 0
     if not target:
-        return 50.0
+        return 0.0
 
     user_words = set(re.findall(r"[a-zA-Z]{3,}", u))
     ratio = len(target.intersection(user_words)) / max(1, len(target))
@@ -185,6 +189,7 @@ STRICT RULES:
 Return this EXACT JSON structure:
 [
   {{
+    "type": "mcq",
     "q": "Question text?",
     "options": [
       {{"key": "A", "text": "First option"}},
@@ -213,6 +218,7 @@ STRICT RULES:
 Return this EXACT JSON structure:
 [
   {{
+    "type": "written",
     "q": "Explain in detail...",
     "marks": 5,
     "key_points": ["point 1", "point 2", "point 3", "point 4"],
@@ -305,14 +311,12 @@ async def generate_questions_ai(request: Request):
     }
     difficulty_desc = difficulty_map.get(exam_format, "medium, well-balanced")
 
-    # Check API key exists
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
         return JSONResponse(
             {"ok": False, "error": "GROQ_API_KEY not set in .env file."},
             status_code=500
         )
-
 
     # Pick the right prompt
     if question_type == "written":
@@ -322,14 +326,13 @@ async def generate_questions_ai(request: Request):
     else:
         prompt = build_mcq_prompt(topic, exam_format, num_questions, difficulty_desc)
 
+    # FIX: create client once, outside the retry loop
+    client = Groq(api_key=api_key)
     last_error = "Unknown error"
 
     # Retry loop — try 3 times before giving up
     for attempt in range(3):
         try:
-            from groq import Groq
-
-            client = Groq(api_key=api_key)
             response = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
@@ -358,7 +361,6 @@ async def generate_questions_ai(request: Request):
                 if not q_text:
                     continue
 
-                # Determine type of this question
                 q_type = str(q.get("type", "written" if question_type == "written" else "mcq")).lower()
 
                 if q_type == "written":
@@ -424,8 +426,8 @@ async def generate_questions_ai(request: Request):
         except Exception as e:
             last_error = f"Error on attempt {attempt + 1}: {str(e)}"
             print("ACTUAL ERROR:", e)
-            time.sleep(1)
-    
+            # FIX: non-blocking sleep inside async handler
+            await asyncio.sleep(1)
     return JSONResponse({"ok": False, "error": last_error}, status_code=500)
 
 
@@ -567,7 +569,7 @@ async def api_submit_exam(exam_id: str, request: Request):
     grade   = grade_from_percent(percent)
 
     if percent < 50:
-        feedback_lines.append("Focus on core concepts-revise this chapter thoroughly.")
+        feedback_lines.append("Focus on core concepts — revise this chapter thoroughly.")
     elif percent < 70:
         feedback_lines.append("Good start! Work on accuracy and cover all key points.")
     elif percent < 90:
@@ -576,7 +578,7 @@ async def api_submit_exam(exam_id: str, request: Request):
         feedback_lines.append("Excellent performance! You've got this chapter down.")
 
     if time_over:
-        feedback_lines.append("Time ran out-answers were auto-submitted.")
+        feedback_lines.append("Time ran out — answers were auto-submitted.")
 
     result = {
         "score":              f"{round(got_marks, 2)}/{round(total_marks, 2)}",
@@ -595,7 +597,11 @@ async def api_submit_exam(exam_id: str, request: Request):
     exam["submitted"] = True
     exam["result"]    = result
     return {"ok": True, "submitted": True, "result": result}
-from fastapi.responses import StreamingResponse
+
+
+# ─────────────────────────────────────────
+# Streaming Question Generation API
+# ─────────────────────────────────────────
 
 @app.post("/api/generate-questions-stream")
 async def generate_questions_stream(request: Request):
@@ -620,10 +626,11 @@ async def generate_questions_stream(request: Request):
             yield f"data: {json.dumps({'error': 'GROQ_API_KEY not set'})}\n\n"
         return StreamingResponse(err(), media_type="text/event-stream")
 
+    # FIX: create client once outside the generator
     client = Groq(api_key=api_key)
-    seen_questions = set()
+    seen_questions: set = set()
 
-    def call_groq(prompt):
+    def call_groq(prompt: str) -> str:
         """Synchronous Groq call — runs in thread pool."""
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -634,8 +641,8 @@ async def generate_questions_stream(request: Request):
         return response.choices[0].message.content.strip()
 
     async def generate():
-        generated = 0
-        attempts  = 0
+        generated   = 0
+        attempts    = 0
         max_attempts = num_questions * 4
 
         print(f"🚀 Starting generation: topic='{topic}', format='{exam_format}', type='{question_type}', qty={num_questions}")
@@ -643,22 +650,29 @@ async def generate_questions_stream(request: Request):
         while generated < num_questions and attempts < max_attempts:
             attempts += 1
             try:
+                # FIX: track which prompt type we actually sent so type
+                # detection doesn't silently default to mcq for mix mode
                 if question_type == "written":
-                    prompt = build_written_prompt(topic, exam_format, 1, difficulty_desc)
+                    prompt      = build_written_prompt(topic, exam_format, 1, difficulty_desc)
+                    prompt_type = "written"
                 elif question_type == "mix":
                     if generated % 3 == 2:
-                        prompt = build_written_prompt(topic, exam_format, 1, difficulty_desc)
+                        prompt      = build_written_prompt(topic, exam_format, 1, difficulty_desc)
+                        prompt_type = "written"
                     else:
-                        prompt = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
+                        prompt      = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
+                        prompt_type = "mcq"
                 else:
-                    prompt = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
+                    prompt      = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
+                    prompt_type = "mcq"
 
                 if seen_questions:
                     avoid = list(seen_questions)[:5]
                     prompt += f"\n\nIMPORTANT: Do NOT generate questions similar to: {avoid}"
 
-                # Run blocking Groq call in thread pool
-                loop = asyncio.get_event_loop()
+<<<<<<< HEAD
+                # FIX: use get_running_loop() — get_event_loop() is deprecated in 3.10+
+                loop = asyncio.get_running_loop()
                 print(f"  Attempt {attempts}/{max_attempts}: Calling Groq API...")
                 raw = await loop.run_in_executor(None, call_groq, prompt)
                 print(f"  Got response: {len(raw) if raw else 0} chars")
@@ -672,14 +686,16 @@ async def generate_questions_stream(request: Request):
                     print(f"  ❌ Parse failed or empty list")
                     continue
 
-                q = parsed[0]
+                q      = parsed[0]
                 q_text = str(q.get("q", "")).strip()
                 if not q_text or q_text in seen_questions:
                     print(f"  ⚠️  Empty or duplicate question")
                     continue
 
                 seen_questions.add(q_text)
-                q_type_actual = str(q.get("type", "written" if question_type == "written" else "mcq")).lower()
+
+                # FIX: fall back to prompt_type, not question_type
+                q_type_actual = str(q.get("type", prompt_type)).lower()
 
                 if q_type_actual == "written":
                     model_answer = str(q.get("model_answer", "")).strip()
@@ -706,9 +722,11 @@ async def generate_questions_stream(request: Request):
                     if len(options) != 4:
                         print(f"  ⚠️  Invalid options: {len(options)}/4")
                         continue
+
                     answer = str(q.get("answer", "A")).strip().upper()
                     if answer not in ["A", "B", "C", "D"]:
                         answer = "A"
+
                     valid_q = {
                         "type": "mcq",
                         "q": q_text,

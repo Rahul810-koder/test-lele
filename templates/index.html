@@ -16,6 +16,8 @@
   <link rel="stylesheet" href="/static/styles.css"/>
   <style>
     /* ── Base ── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { overflow-x: hidden; max-width: 100%; }
     body { font-family: 'Outfit', sans-serif !important; }
 
     /* ── Centered page layout ── */
@@ -193,7 +195,7 @@
       width: 100%; justify-content: center; padding: 14px;
       font-size: .97rem; font-weight: 800; border-radius: 12px; letter-spacing: -.2px;
     }
-  
+
     /* ── Waitlist section ── */
     .wl-section {
       background: var(--surface); border: 1px solid var(--border);
@@ -208,6 +210,7 @@
       background: var(--surface2); border: 1px solid var(--border);
       border-radius: 999px; padding: 3px 11px; font-size: .74rem; color: var(--muted); font-weight: 600;
     }
+    /* FIX: single .wl-btn class used for all waitlist buttons — no duplicate IDs */
     .wl-btn {
       display: inline-flex; align-items: center; gap: 8px;
       background: var(--accent); color: var(--accent-fg); border: none;
@@ -216,15 +219,104 @@
     }
     .wl-btn:hover { opacity: .88; }
 
+    /* ── Waitlist Modal ── */
+    .wl-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 10000; display: none; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .wl-modal.open { display: flex; }
+    .wl-modal-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px 20px; width: 100%;
+      max-width: 420px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 16px 60px rgba(0,0,0,.25);
+    }
+    .wl-modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .wl-modal-head h3 { font-size: 1.05rem; font-weight: 900; margin: 0; }
+    .wl-close {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; width: 28px; height: 28px;
+      display: grid; place-items: center; cursor: pointer;
+      font-size: .8rem; color: var(--muted);
+    }
+    .wl-sub { font-size: .83rem; color: var(--muted); margin-bottom: 16px; }
+    .wl-success { text-align: center; padding: 24px 0; display: none; }
+    .wl-success .tick { font-size: 2.5rem; margin-bottom: 10px; }
+    .wl-success h3 { font-size: 1.1rem; font-weight: 900; margin-bottom: 6px; }
+    .wl-success p { color: var(--muted); font-size: .85rem; }
+
     /* ── Card compact on index ── */
     .main-card { padding: 18px 16px; }
     .main-card .form { gap: 14px; }
 
-    /* ── Mobile ── */
-   /* ── Prevent horizontal overflow globally ── */
-*, *::before, *::after { box-sizing: border-box; }
-html, body { overflow-x: hidden; max-width: 100%; }
-
+    /* ── TeLe Bot ── */
+    .tele-bot {
+      position: fixed; bottom: 20px; right: 16px;
+      width: min(310px, calc(100vw - 28px));
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; box-shadow: 0 8px 40px rgba(0,0,0,.18);
+      padding: 18px 16px 14px; z-index: 1000;
+      animation: botSlideUp .4s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes botSlideUp {
+      from { opacity:0; transform:translateY(24px) scale(.96); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+    .tele-head { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+    .tele-avatar {
+      width:38px; height:38px; background:var(--accent); color:var(--accent-fg);
+      border-radius:50%; display:grid; place-items:center; font-size:1.2rem; flex-shrink:0;
+    }
+    .tele-name { font-weight:900; font-size:.9rem; }
+    .tele-tag  { font-size:.7rem; color:var(--muted); font-weight:600; }
+    .tele-close {
+      margin-left:auto; background:var(--surface2); border:none;
+      border-radius:8px; width:26px; height:26px; display:grid; place-items:center;
+      cursor:pointer; color:var(--muted); font-size:.85rem;
+    }
+    .tele-typing {
+      display:flex; gap:4px; align-items:center; padding:9px 13px;
+      background:var(--surface2); border-radius:4px 13px 13px 13px;
+      margin-bottom:12px; width:fit-content;
+    }
+    .tele-dot {
+      width:6px; height:6px; background:var(--muted);
+      border-radius:50%; animation:typingDot 1.2s infinite;
+    }
+    .tele-dot:nth-child(2){animation-delay:.2s;}
+    .tele-dot:nth-child(3){animation-delay:.4s;}
+    @keyframes typingDot {
+      0%,60%,100%{transform:translateY(0);opacity:.4;}
+      30%{transform:translateY(-4px);opacity:1;}
+    }
+    .tele-bubble {
+      background:var(--surface2); border-radius:4px 13px 13px 13px;
+      padding:11px 13px; font-size:.85rem; line-height:1.6;
+      color:var(--text); margin-bottom:12px;
+    }
+    .tele-bubble b{color:var(--accent);}
+    .tele-actions{display:flex;gap:7px;}
+    .tele-btn-primary {
+      flex:1; background:var(--accent); color:var(--accent-fg); border:none;
+      border-radius:10px; padding:10px; font-size:.82rem; font-weight:800;
+      cursor:pointer; font-family:'Outfit',sans-serif; transition:opacity .15s;
+    }
+    .tele-btn-primary:hover{opacity:.85;}
+    .tele-btn-ghost {
+      background:var(--surface2); color:var(--muted); border:1px solid var(--border);
+      border-radius:10px; padding:10px 12px; font-size:.82rem; font-weight:700;
+      cursor:pointer; font-family:'Outfit',sans-serif;
+    }
+    .tele-bubble-btn {
+      position:fixed; bottom:20px; right:16px; width:50px; height:50px;
+      background:var(--accent); color:var(--accent-fg); border:none; border-radius:50%;
+      font-size:1.3rem; display:grid; place-items:center; cursor:pointer;
+      box-shadow:0 4px 20px rgba(0,0,0,.2); z-index:999;
+    }
   </style>
 </head>
 <body>
@@ -258,7 +350,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
       </div>
     </div>
     <div class="navRight">
-      <button class="btn ghost" id="waitlistBtn" type="button">🔔 Waitlist</button>
+      <!-- FIX: unique ID — was duplicate with waitlistBtn2 -->
+      <button class="btn ghost" id="navWaitlistBtn" type="button">🔔 Waitlist</button>
       <button class="btn ghost" id="themeBtn" type="button">🌙</button>
     </div>
   </header>
@@ -415,7 +508,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
       <span class="wl-feat">🏆 Leaderboard</span>
       <span class="wl-feat">👥 Share tests</span>
     </div>
-    <button class="wl-btn" id="waitlistBtn2">🔔 Join Waitlist — Free</button>
+    <!-- FIX: class-based click handler, no duplicate ID -->
+    <button class="wl-btn js-open-waitlist">🔔 Join Waitlist — Free</button>
     <p style="font-size:.74rem;color:var(--muted);margin-top:10px;">No spam. Only launch updates. 🙏</p>
   </div>
 
@@ -424,8 +518,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
   </div>
 </div>
 
-<!-- Waitlist Modal -->
-<div class="wl-modal" id="wlModal" style="display:none;">
+<!-- Waitlist Modal — FIX: uses .open class to toggle, not display:grid inline -->
+<div class="wl-modal" id="wlModal">
   <div class="wl-modal-card">
     <div class="wl-modal-head">
       <h3>🔔 Join the Waitlist</h3>
@@ -469,73 +563,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
   </div>
 </div>
 
-<!-- TeLe Bot -->
+<!-- TeLe Bot — FIX: styles moved to <head>, no inline <style> inside <div> -->
 <div id="teleBot" style="display:none;">
-  <style>
-    .tele-bot {
-      position: fixed; bottom: 20px; right: 16px;
-      width: min(310px, calc(100vw - 28px));
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 20px; box-shadow: 0 8px 40px rgba(0,0,0,.18);
-      padding: 18px 16px 14px; z-index: 1000;
-      animation: botSlideUp .4s cubic-bezier(.16,1,.3,1);
-    }
-    @keyframes botSlideUp {
-      from { opacity:0; transform:translateY(24px) scale(.96); }
-      to   { opacity:1; transform:translateY(0) scale(1); }
-    }
-    .tele-head { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
-    .tele-avatar {
-      width:38px; height:38px; background:var(--accent); color:var(--accent-fg);
-      border-radius:50%; display:grid; place-items:center; font-size:1.2rem; flex-shrink:0;
-    }
-    .tele-name { font-weight:900; font-size:.9rem; }
-    .tele-tag  { font-size:.7rem; color:var(--muted); font-weight:600; }
-    .tele-close {
-      margin-left:auto; background:var(--surface2); border:none;
-      border-radius:8px; width:26px; height:26px; display:grid; place-items:center;
-      cursor:pointer; color:var(--muted); font-size:.85rem;
-    }
-    .tele-typing {
-      display:flex; gap:4px; align-items:center; padding:9px 13px;
-      background:var(--surface2); border-radius:4px 13px 13px 13px;
-      margin-bottom:12px; width:fit-content;
-    }
-    .tele-dot {
-      width:6px; height:6px; background:var(--muted);
-      border-radius:50%; animation:typingDot 1.2s infinite;
-    }
-    .tele-dot:nth-child(2){animation-delay:.2s;}
-    .tele-dot:nth-child(3){animation-delay:.4s;}
-    @keyframes typingDot {
-      0%,60%,100%{transform:translateY(0);opacity:.4;}
-      30%{transform:translateY(-4px);opacity:1;}
-    }
-    .tele-bubble {
-      background:var(--surface2); border-radius:4px 13px 13px 13px;
-      padding:11px 13px; font-size:.85rem; line-height:1.6;
-      color:var(--text); margin-bottom:12px;
-    }
-    .tele-bubble b{color:var(--accent);}
-    .tele-actions{display:flex;gap:7px;}
-    .tele-btn-primary {
-      flex:1; background:var(--accent); color:var(--accent-fg); border:none;
-      border-radius:10px; padding:10px; font-size:.82rem; font-weight:800;
-      cursor:pointer; font-family:'Outfit',sans-serif; transition:opacity .15s;
-    }
-    .tele-btn-primary:hover{opacity:.85;}
-    .tele-btn-ghost {
-      background:var(--surface2); color:var(--muted); border:1px solid var(--border);
-      border-radius:10px; padding:10px 12px; font-size:.82rem; font-weight:700;
-      cursor:pointer; font-family:'Outfit',sans-serif;
-    }
-    .tele-bubble-btn {
-      position:fixed; bottom:20px; right:16px; width:50px; height:50px;
-      background:var(--accent); color:var(--accent-fg); border:none; border-radius:50%;
-      font-size:1.3rem; display:grid; place-items:center; cursor:pointer;
-      box-shadow:0 4px 20px rgba(0,0,0,.2); z-index:999;
-    }
-  </style>
   <div class="tele-bot" id="teleBotCard">
     <div class="tele-head">
       <div class="tele-avatar">🤖</div>
@@ -576,6 +605,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
     btn.textContent = next === "dark" ? "☀️" : "🌙";
   });
 })();
+
 // ── Upload handling ──
 const uploadedPhotos = [];
 const uploadedPDFs   = [];
@@ -589,7 +619,7 @@ function renderUploadPreviews() {
     const thumb = document.createElement('div');
     thumb.className = 'upload-thumb';
     thumb.innerHTML = `<img src="${item.dataUrl}" alt="photo"/>
-      <button class="rm-upload" data-type="photo" data-idx="${i}">✕</button>`;
+      <button class="rm-upload" data-type="photo" data-idx="${i}" type="button">✕</button>`;
     container.appendChild(thumb);
   });
 
@@ -598,7 +628,7 @@ function renderUploadPreviews() {
     el.className = 'upload-pdf-item';
     const name = item.file.name.length > 20 ? item.file.name.slice(0, 18) + '…' : item.file.name;
     el.innerHTML = `📄 ${name}
-      <button class="rm-upload" data-type="pdf" data-idx="${i}">✕</button>`;
+      <button class="rm-upload" data-type="pdf" data-idx="${i}" type="button">✕</button>`;
     container.appendChild(el);
   });
 
@@ -617,6 +647,8 @@ function renderUploadPreviews() {
 
 document.getElementById('photoUploadInput').addEventListener('change', function() {
   Array.from(this.files).forEach(file => {
+    // FIX: validate file is actually an image
+    if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = e => {
       uploadedPhotos.push({ file, dataUrl: e.target.result });
@@ -629,9 +661,11 @@ document.getElementById('photoUploadInput').addEventListener('change', function(
 
 document.getElementById('pdfUploadInput').addEventListener('change', function() {
   Array.from(this.files).forEach(file => {
+    // FIX: validate file is actually a PDF
+    if (file.type !== 'application/pdf') return;
     uploadedPDFs.push({ file });
-    renderUploadPreviews();
   });
+  renderUploadPreviews();
   this.value = '';
 });
 
@@ -691,7 +725,7 @@ function startFunFacts(topic) {
     i = (i + 1) % facts.length;
     const card = document.getElementById('funfactCard');
     card.style.animation = 'none';
-    card.offsetHeight;
+    card.offsetHeight; // force reflow
     card.style.animation = 'factSlide .5s cubic-bezier(.16,1,.3,1)';
     document.getElementById('funfactText').textContent = facts[i];
   }, 4000);
@@ -709,6 +743,11 @@ function showLoading(topic) {
 function hideLoading() {
   stopFunFacts();
   document.getElementById('loadingOverlay').classList.remove('active');
+  // FIX: reset progress bar so it's fresh next time
+  const bar = document.getElementById('genProgressBar');
+  const txt = document.getElementById('genProgressText');
+  if (bar) bar.style.width = '0%';
+  if (txt) txt.textContent = '0 / 0 questions ready';
 }
 
 // ── Presets ──
@@ -772,10 +811,12 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
 
   showLoading(topic);
 
+  // FIX: null-safe references to progress elements
+  const progressBar  = document.getElementById("genProgressBar");
+  const progressText = document.getElementById("genProgressText");
+
   try {
     const questions = [];
-    const progressBar  = document.getElementById("genProgressBar");
-    const progressText = document.getElementById("genProgressText");
 
     const res = await fetch("/api/generate-questions-stream", {
       method: "POST",
@@ -783,19 +824,39 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
       body: JSON.stringify({ topic, exam_format: examFormat, num_questions: numQ, difficulty, question_type: selectedQType })
     });
 
-    const reader = res.body.getReader();
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+    const reader  = res.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = "";
+    let buffer    = "";
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+
+      // FIX: flush remaining buffer when stream ends before processing done flag
+      if (done) {
+        if (buffer.trim()) {
+          const line = buffer.trim();
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.question) questions.push(data.question);
+            } catch (_) {}
+          }
+        }
+        break;
+      }
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop();
 
-      for (const line of lines) {
+      // FIX: split on double-newline (SSE event boundary) not single newline,
+      // so a complete event is never accidentally split mid-parse
+      const events = buffer.split("\n\n");
+      // Keep the last (potentially incomplete) chunk in buffer
+      buffer = events.pop();
+
+      for (const event of events) {
+        const line = event.trim();
         if (!line.startsWith("data: ")) continue;
         try {
           const data = JSON.parse(line.slice(6));
@@ -803,12 +864,13 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
           if (data.question) {
             questions.push(data.question);
             const pct = Math.round((data.index / data.total) * 100);
-            progressBar.style.width = pct + "%";
-            progressText.textContent = `${data.index} / ${data.total} questions ready`;
+            if (progressBar) progressBar.style.width = pct + "%";
+            if (progressText) progressText.textContent = `${data.index} / ${data.total} questions ready`;
           }
-          if (data.done) break;
         } catch (parseErr) {
-          console.error("Parse error:", parseErr);
+          // Only re-throw if it's our own intentional error, not a JSON parse hiccup
+          if (parseErr.message && !parseErr.message.includes("JSON")) throw parseErr;
+          console.warn("SSE parse warning:", parseErr);
         }
       }
     }
@@ -830,24 +892,46 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
     alert("Error: " + err.message);
   }
 });
+
 // ── Waitlist Modal ──
-const wlModal = document.getElementById("wlModal");
-document.getElementById("waitlistBtn")?.addEventListener("click",  () => wlModal.style.display = "grid");
-document.getElementById("waitlistBtn2")?.addEventListener("click", () => wlModal.style.display = "grid");
-document.getElementById("wlClose")?.addEventListener("click",      () => wlModal.style.display = "none");
-wlModal?.addEventListener("click", e => { if (e.target === wlModal) wlModal.style.display = "none"; });
+// FIX: single openWaitlist() function, bound to all triggers via class + unique IDs
+function openWaitlist() {
+  document.getElementById("wlModal").classList.add("open");
+}
+function closeWaitlist() {
+  document.getElementById("wlModal").classList.remove("open");
+}
+
+document.getElementById("navWaitlistBtn")?.addEventListener("click", openWaitlist);
+document.querySelectorAll(".js-open-waitlist").forEach(el => el.addEventListener("click", openWaitlist));
+document.getElementById("wlClose")?.addEventListener("click", closeWaitlist);
+document.getElementById("wlModal")?.addEventListener("click", e => {
+  if (e.target === document.getElementById("wlModal")) closeWaitlist();
+});
+
 document.getElementById("wlForm")?.addEventListener("submit", async e => {
   e.preventDefault();
-  const btn = e.target.querySelector("button[type=submit]");
-  btn.disabled = true; btn.textContent = "Submitting...";
+  const submitBtn = e.target.querySelector("button[type=submit]");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Submitting...";
   try {
-    const res = await fetch(e.target.action, { method:"POST", body:new FormData(e.target), headers:{"Accept":"application/json"} });
+    const res = await fetch(e.target.action, {
+      method: "POST",
+      body: new FormData(e.target),
+      headers: { "Accept": "application/json" }
+    });
     if (res.ok) {
       document.getElementById("wlForm").style.display = "none";
       document.getElementById("wlSuccess").style.display = "block";
-      setTimeout(() => { wlModal.style.display = "none"; }, 3000);
-    } else { btn.disabled = false; btn.textContent = "Try again →"; }
-  } catch { btn.disabled = false; btn.textContent = "Try again →"; }
+      setTimeout(closeWaitlist, 3000);
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Try again →";
+    }
+  } catch {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Try again →";
+  }
 });
 
 // ── TeLe Bot ──
