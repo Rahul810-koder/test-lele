@@ -670,7 +670,7 @@ async def generate_questions_stream(request: Request):
                     avoid = list(seen_questions)[:5]
                     prompt += f"\n\nIMPORTANT: Do NOT generate questions similar to: {avoid}"
 
-<<<<<<< HEAD
+
                 # FIX: use get_running_loop() — get_event_loop() is deprecated in 3.10+
                 loop = asyncio.get_running_loop()
                 print(f"  Attempt {attempts}/{max_attempts}: Calling Groq API...")
