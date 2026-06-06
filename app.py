@@ -23,7 +23,6 @@ from groq import Groq
 
 # Load .env file
 load_dotenv()
-print("KEY:", os.getenv("GROQ_API_KEY"))
 
 
 # ─────────────────────────────────────────
@@ -626,130 +625,133 @@ async def generate_questions_stream(request: Request):
             yield f"data: {json.dumps({'error': 'GROQ_API_KEY not set'})}\n\n"
         return StreamingResponse(err(), media_type="text/event-stream")
 
-    # FIX: create client once outside the generator
+    # Create client once, outside the generator
     client = Groq(api_key=api_key)
-    seen_questions: set = set()
-
-    def call_groq(prompt: str) -> str:
-        """Synchronous Groq call — runs in thread pool."""
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=800,
-            temperature=0.9,
-        )
-        return response.choices[0].message.content.strip()
 
     async def generate():
-        generated   = 0
-        attempts    = 0
-        max_attempts = num_questions * 4
+        print(f"🚀 Starting batch generation: topic='{topic}', format='{exam_format}', type='{question_type}', qty={num_questions}")
 
-        print(f"🚀 Starting generation: topic='{topic}', format='{exam_format}', type='{question_type}', qty={num_questions}")
+        # Build the appropriate prompt for batch generation
+        if question_type == "written":
+            prompt = build_written_prompt(topic, exam_format, num_questions, difficulty_desc)
+        elif question_type == "mix":
+            prompt = build_mix_prompt(topic, exam_format, num_questions, difficulty_desc)
+        else:
+            prompt = build_mcq_prompt(topic, exam_format, num_questions, difficulty_desc)
 
-        while generated < num_questions and attempts < max_attempts:
-            attempts += 1
+        valid_questions = []
+        last_error = "Unknown error"
+
+        # Batch call with retry logic — try up to 2 times
+        for attempt in range(2):
             try:
-                # FIX: track which prompt type we actually sent so type
-                # detection doesn't silently default to mcq for mix mode
-                if question_type == "written":
-                    prompt      = build_written_prompt(topic, exam_format, 1, difficulty_desc)
-                    prompt_type = "written"
-                elif question_type == "mix":
-                    if generated % 3 == 2:
-                        prompt      = build_written_prompt(topic, exam_format, 1, difficulty_desc)
-                        prompt_type = "written"
-                    else:
-                        prompt      = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
-                        prompt_type = "mcq"
-                else:
-                    prompt      = build_mcq_prompt(topic, exam_format, 1, difficulty_desc)
-                    prompt_type = "mcq"
-
-                if seen_questions:
-                    avoid = list(seen_questions)[:5]
-                    prompt += f"\n\nIMPORTANT: Do NOT generate questions similar to: {avoid}"
-
-
-                # FIX: use get_running_loop() — get_event_loop() is deprecated in 3.10+
+                print(f"  Attempt {attempt + 1}/2: Calling Groq API for batch generation...")
                 loop = asyncio.get_running_loop()
-                print(f"  Attempt {attempts}/{max_attempts}: Calling Groq API...")
-                raw = await loop.run_in_executor(None, call_groq, prompt)
-                print(f"  Got response: {len(raw) if raw else 0} chars")
+
+                def call_groq():
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=4000,
+                        temperature=0.7,
+                    )
+                    return response.choices[0].message.content.strip()
+
+                raw = await loop.run_in_executor(None, call_groq)
 
                 if not raw:
-                    print(f"  ❌ Empty response")
+                    last_error = f"Empty response on attempt {attempt + 1}"
+                    print(f"  ❌ {last_error}")
                     continue
 
                 parsed = parse_ai_response(raw)
-                if not isinstance(parsed, list) or not parsed:
-                    print(f"  ❌ Parse failed or empty list")
+
+                if not isinstance(parsed, list):
+                    last_error = "Response is not a list"
+                    print(f"  ❌ {last_error}")
                     continue
 
-                q      = parsed[0]
-                q_text = str(q.get("q", "")).strip()
-                if not q_text or q_text in seen_questions:
-                    print(f"  ⚠️  Empty or duplicate question")
-                    continue
-
-                seen_questions.add(q_text)
-
-                # FIX: fall back to prompt_type, not question_type
-                q_type_actual = str(q.get("type", prompt_type)).lower()
-
-                if q_type_actual == "written":
-                    model_answer = str(q.get("model_answer", "")).strip()
-                    if not model_answer:
-                        print(f"  ⚠️  No model answer")
+                # Validate and process each question from the batch
+                for q in parsed:
+                    if not isinstance(q, dict):
                         continue
-                    valid_q = {
-                        "type": "written",
-                        "q": q_text,
-                        "marks": safe_int(q.get("marks", 5), 5, 2, 10),
-                        "key_points": q.get("key_points", []) if isinstance(q.get("key_points"), list) else [],
-                        "model_answer": model_answer,
-                    }
+
+                    q_text = str(q.get("q", "")).strip()
+                    if not q_text:
+                        continue
+
+                    q_type = str(q.get("type", "written" if question_type == "written" else "mcq")).lower()
+
+                    if q_type == "written":
+                        key_points   = q.get("key_points", [])
+                        model_answer = str(q.get("model_answer", "")).strip()
+                        if not model_answer:
+                            continue
+                        valid_questions.append({
+                            "type": "written",
+                            "q": q_text,
+                            "marks": safe_int(q.get("marks", 5), 5, 2, 10),
+                            "key_points": key_points if isinstance(key_points, list) else [],
+                            "model_answer": model_answer,
+                        })
+
+                    else:
+                        # MCQ validation
+                        options = normalize_options(q.get("options", []))
+
+                        # Fallback: check for flat A/B/C/D keys
+                        if len(options) < 4:
+                            rebuilt = [
+                                {"key": k, "text": str(q.get(k, "")).strip()}
+                                for k in ["A", "B", "C", "D"]
+                                if str(q.get(k, "")).strip()
+                            ]
+                            if len(rebuilt) == 4:
+                                options = rebuilt
+
+                        if len(options) != 4:
+                            continue
+
+                        answer = str(q.get("answer", "A")).strip().upper()
+                        if answer not in ["A", "B", "C", "D"]:
+                            answer = "A"
+
+                        option_keys = [o["key"] for o in options]
+                        if answer not in option_keys:
+                            answer = option_keys[0]
+
+                        valid_questions.append({
+                            "type": "mcq",
+                            "q": q_text,
+                            "options": options,
+                            "answer": answer,
+                            "explain": str(q.get("explain", "")).strip() or "See correct option.",
+                        })
+
+                if valid_questions:
+                    print(f"  ✅ Batch complete: {len(valid_questions)} valid questions parsed")
+                    break
                 else:
-                    options = normalize_options(q.get("options", []))
-                    if len(options) < 4:
-                        rebuilt = [
-                            {"key": k, "text": str(q.get(k, "")).strip()}
-                            for k in ["A", "B", "C", "D"]
-                            if str(q.get(k, "")).strip()
-                        ]
-                        if len(rebuilt) == 4:
-                            options = rebuilt
-                    if len(options) != 4:
-                        print(f"  ⚠️  Invalid options: {len(options)}/4")
-                        continue
+                    last_error = f"No valid questions on attempt {attempt + 1}. Raw: {raw[:300]}"
+                    print(f"  ⚠️  {last_error}")
 
-                    answer = str(q.get("answer", "A")).strip().upper()
-                    if answer not in ["A", "B", "C", "D"]:
-                        answer = "A"
-
-                    valid_q = {
-                        "type": "mcq",
-                        "q": q_text,
-                        "options": options,
-                        "answer": answer,
-                        "explain": str(q.get("explain", "")).strip() or "See correct option.",
-                    }
-
-                generated += 1
-                print(f"  ✅ Generated Q{generated}/{num_questions}")
-                yield f"data: {json.dumps({'question': valid_q, 'index': generated, 'total': num_questions})}\n\n"
-
+            except json.JSONDecodeError as e:
+                last_error = f"JSON parse error on attempt {attempt + 1}: {str(e)}"
+                print(f"  ❌ {last_error}")
             except Exception as e:
-                print(f"  ❌ Stream error attempt {attempts}: {e}")
-                import traceback
-                traceback.print_exc()
-                await asyncio.sleep(0.3)
-                continue
+                last_error = f"Error on attempt {attempt + 1}: {str(e)}"
+                print(f"  ❌ {last_error}")
+                await asyncio.sleep(0.5)
 
-        print(f"💯 Generation complete: {generated}/{num_questions} questions")
-        if generated < num_questions:
-            yield f"data: {json.dumps({'error': f'Only generated {generated}/{num_questions} questions. Please try again.'})}\n\n"
+        # Stream the valid questions one-by-one with 150ms delay
+        if valid_questions:
+            print(f"💯 Streaming {len(valid_questions)} questions...")
+            for idx, q in enumerate(valid_questions, start=1):
+                yield f"data: {json.dumps({'question': q, 'index': idx, 'total': len(valid_questions)})}\n\n"
+                await asyncio.sleep(0.15)  # 150ms delay between each question
+            yield f"data: {json.dumps({'done': True, 'total_generated': len(valid_questions)})}\n\n"
         else:
-            yield f"data: {json.dumps({'done': True, 'total_generated': generated})}\n\n"
+            print(f"❌ Generation failed: {last_error}")
+            yield f"data: {json.dumps({'error': last_error})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
