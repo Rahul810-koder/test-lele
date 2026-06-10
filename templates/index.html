@@ -800,7 +800,7 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
   btn.disabled = true;
   btn.textContent = "⚡ Generating...";
 
-  const topic        = document.getElementById("topicInput").value.trim() || "General Knowledge";
+  let topic        = document.getElementById("topicInput").value.trim() || "General Knowledge";
   const activePreset = document.querySelector(".preset-btn.active")?.dataset.preset || "quick";
   const formatMap    = { neet: "NEET", jee: "JEE", cbse: "CBSE", quick: "Quick Test" };
   const examFormat   = formatMap[activePreset] || "CBSE";
@@ -816,6 +816,30 @@ document.getElementById("mainForm").addEventListener("submit", async function(e)
   const progressText = document.getElementById("genProgressText");
 
   try {
+    // Extract text from uploaded images if any
+    if (uploadedPhotos.length > 0) {
+      console.log(`📸 Extracting text from ${uploadedPhotos.length} image(s)...`);
+      const photoDataUrls = uploadedPhotos.map(p => p.dataUrl);
+      const extractRes = await fetch("/api/extract-text-from-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: photoDataUrls })
+      });
+
+      if (!extractRes.ok) {
+        const errData = await extractRes.json();
+        throw new Error(errData.error || "Failed to extract text from images");
+      }
+
+      const extractData = await extractRes.json();
+      if (extractData.ok && extractData.extracted_text) {
+        console.log("✅ Image text extracted, enriching topic...");
+        topic = topic + "\n\nContext from uploaded image:\n" + extractData.extracted_text;
+      } else {
+        throw new Error(extractData.error || "Image extraction failed");
+      }
+    }
+
     const questions = [];
 
     const res = await fetch("/api/generate-questions-stream", {

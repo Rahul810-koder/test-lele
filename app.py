@@ -755,3 +755,79 @@ async def generate_questions_stream(request: Request):
             yield f"data: {json.dumps({'error': last_error})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# ─────────────────────────────────────────
+# Image Text Extraction API
+# ─────────────────────────────────────────
+
+@app.post("/api/extract-text-from-image")
+async def extract_text_from_image(request: Request):
+    """Extract text from uploaded images using Groq's llava vision model."""
+    body = await request.json()
+    images = body.get("images", [])
+
+    if not images:
+        return JSONResponse(
+            {"ok": False, "error": "No images provided"},
+            status_code=400
+        )
+
+    api_key = os.environ.get("GROQ_API_KEY", "")
+    if not api_key:
+        return JSONResponse(
+            {"ok": False, "error": "GROQ_API_KEY not set in .env file."},
+            status_code=500
+        )
+
+    client = Groq(api_key=api_key)
+    extracted_texts = []
+
+    for image_data_url in images:
+        try:
+            # Strip the data URL prefix to get raw base64
+            if image_data_url.startswith("data:"):
+                # Format: "data:image/jpeg;base64,/9j/..."
+                parts = image_data_url.split(",", 1)
+                if len(parts) != 2:
+                    continue
+                base64_data = parts[1]
+            else:
+                base64_data = image_data_url
+
+            # Call Groq with vision model
+            response = client.chat.completions.create(
+               model="meta-llama/llama-4-scout-17b-16e-instruct",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{base64_data}"}
+                        },
+                        {
+                            "type": "text",
+                            "text": "Extract all text, topics, and key concepts visible in this image. Return as plain text."
+                        }
+                    ]
+                }],
+                max_tokens=1000,
+            )
+
+            extracted = response.choices[0].message.content.strip()
+            if extracted:
+                extracted_texts.append(extracted)
+
+        except Exception as e:
+            print(f"[WARN] Image extraction failed: {str(e)}")
+            # Continue with other images instead of failing completely
+            continue
+
+    if not extracted_texts:
+        return JSONResponse(
+            {"ok": False, "error": "No text could be extracted from images"},
+            status_code=400
+        )
+
+    combined_text = "\n\n".join(extracted_texts)
+    return JSONResponse({"ok": True, "extracted_text": combined_text})
