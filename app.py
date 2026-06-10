@@ -763,7 +763,7 @@ async def generate_questions_stream(request: Request):
 
 @app.post("/api/extract-text-from-image")
 async def extract_text_from_image(request: Request):
-    """Extract text from uploaded images using Groq's llava vision model."""
+    """Extract text from uploaded images using Groq's vision model."""
     body = await request.json()
     images = body.get("images", [])
 
@@ -785,25 +785,24 @@ async def extract_text_from_image(request: Request):
 
     for image_data_url in images:
         try:
-            # Strip the data URL prefix to get raw base64
             if image_data_url.startswith("data:"):
-                # Format: "data:image/jpeg;base64,/9j/..."
                 parts = image_data_url.split(",", 1)
                 if len(parts) != 2:
                     continue
+                mime_type = image_data_url.split(";")[0].split(":")[1]
                 base64_data = parts[1]
             else:
+                mime_type = "image/jpeg"
                 base64_data = image_data_url
 
-            # Call Groq with vision model
             response = client.chat.completions.create(
-               model="meta-llama/llama-4-scout-17b-16e-instruct",
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
                 messages=[{
                     "role": "user",
                     "content": [
                         {
                             "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{base64_data}"}
+                            "image_url": {"url": f"data:{mime_type};base64,{base64_data}"}
                         },
                         {
                             "type": "text",
@@ -820,7 +819,6 @@ async def extract_text_from_image(request: Request):
 
         except Exception as e:
             print(f"[WARN] Image extraction failed: {str(e)}")
-            # Continue with other images instead of failing completely
             continue
 
     if not extracted_texts:
