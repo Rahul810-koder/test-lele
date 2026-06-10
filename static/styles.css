@@ -666,7 +666,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
 @media (max-width: 600px) {
   .page  { padding: 10px 16px 80px; }
   .card  { padding: 20px 18px; }
-  .row2  { grid-template-columns: 1fr 1fr !important; }
+  .row2  { grid-template-columns: 1fr 1fr; }
+  
 
   /* Prevent iOS zoom on input tap */
   .input, select, textarea { font-size: 16px !important; }
