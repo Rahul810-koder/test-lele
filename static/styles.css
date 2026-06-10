@@ -755,7 +755,7 @@ html { overflow-x: hidden; }
   .qtype-desc  { font-size: .6rem; }
 
   /* row2 — two col on mobile is fine but must be constrained */
-  .row2 { grid-template-columns: 1fr 1fr !important; gap: 8px; }
+  .row2 { grid-template-columns: 1fr 1fr; gap: 8px; }
   .row2 > * { min-width: 0; }
 
   /* Demo chips scroll horizontally, never wrap off-screen */
