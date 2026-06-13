@@ -317,6 +317,99 @@
       font-size:1.3rem; display:grid; place-items:center; cursor:pointer;
       box-shadow:0 4px 20px rgba(0,0,0,.2); z-index:999;
     }
+
+    /* Mobile layout: keep every control inside the viewport */
+    .main-card,
+    .main-card * {
+      min-width: 0;
+    }
+    .main-card {
+      width: 100%;
+      overflow: hidden;
+    }
+    .preset-grid,
+    .qtype-grid,
+    .row2 {
+      width: 100%;
+      max-width: 100%;
+    }
+    .preset-grid,
+    .qtype-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .row2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 640px) {
+      .nav-wrap,
+      .page-wrap {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      .create-hero h1 {
+        font-size: 1.42rem;
+        letter-spacing: 0;
+      }
+      .create-hero p {
+        font-size: .86rem;
+      }
+      .main-card {
+        padding: 16px;
+        border-radius: 14px;
+      }
+      .upload-section {
+        padding: 13px 12px 10px;
+      }
+      .demo-topics {
+        margin-left: -16px;
+        margin-right: -16px;
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      .preset-grid,
+      .qtype-grid {
+        gap: 8px;
+      }
+      .preset-btn,
+      .qtype-btn {
+        min-height: 82px;
+      }
+      .qtype-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .row2 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .submit-btn {
+        position: sticky;
+        bottom: 12px;
+        padding: 13px;
+        box-shadow: 0 8px 26px rgba(0,0,0,.2);
+      }
+      .wl-section {
+        padding: 19px 16px;
+      }
+      .tele-bubble-btn {
+        bottom: 18px;
+        right: 12px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .preset-grid,
+      .qtype-grid {
+        grid-template-columns: 1fr;
+      }
+      .navRight {
+        gap: 5px;
+      }
+      .navRight .btn.ghost {
+        padding-left: 9px;
+        padding-right: 9px;
+      }
+    }
   </style>
 </head>
 <body>
